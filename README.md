@@ -39,3 +39,6 @@ External links
  - https://triplydb.com/academy/iris/
  - https://graphdb.ontotext.com/documentation/10.0/loading-data-using-the-workbench.html
  - https://json-ld.org/playground/
+ - https://www.wikidata.org/wiki/Wikidata:Query_Builder
+ - https://query.wikidata.org/querybuilder/?uselang=en
+
