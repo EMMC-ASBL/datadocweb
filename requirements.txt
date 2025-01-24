@@ -1,0 +1,4 @@
+requests
+attrdict
+tripper[datadoc] @ git+https://github.com/EMMC-ASBL/tripper.git@master
+PyBackTrip @ git+https://github.com/EMMC-ASBL/PyBackTrip.git@main
