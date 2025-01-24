@@ -1,9 +1,10 @@
-=======
 datadoc
 =======
 
 Installation
 ------------
+
+On Windows, with Python 3.11:
 
 ```sh
 py -3.11 -m pip install pipenv
