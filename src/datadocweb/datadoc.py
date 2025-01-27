@@ -1,16 +1,26 @@
 
-""" Try tripper and datadoc """
+""" Define the class DataDoc that implement the methods from the module
+    tripper.datadoc.clitool:
 
-from typing import List
+    - add triples in the triple store from yaml or csv files
+    - find/search in the triples store
+    - fetch a file
+
+"""
+
+from typing import List, Optional, Sequence, Union
 import os
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
+import requests
 from io import StringIO
 import json
-from tripper import Triplestore
+from tripper import Triplestore, DCAT
+from tripper.datadoc.dataset import get
 from tripper.datadoc import (
     TableDoc,
     get_jsonld_context,
-    load,
     load_dict,
     save_datadoc,
     save_dict,
@@ -18,13 +28,73 @@ from tripper.datadoc import (
 )
 
 
+def load_dataset(
+    ts: Triplestore,
+    iri: str,
+    distributions: Optional[Union[str, Sequence[str]]] = None,
+    use_sparql: Optional[bool] = None,
+) -> bytes:
+    """Load dataset with given IRI from its source.
+
+    Arguments:
+        ts: Triplestore documenting the data to load.
+        iri: IRI of the data to load.
+        distributions: Name or sequence of names of distribution(s) to
+            try in case the dataset has multiple distributions.  The
+            default is to try all documented distributions.
+        use_sparql: Whether to access the triplestore with SPARQL.
+            Defaults to `ts.prefer_sparql`.
+
+    Returns:
+        Bytes object with the underlying data.
+
+    Note:
+        For now this requires DLite.
+    """
+    dct = load_dict(ts, iri=iri, use_sparql=use_sparql)
+    if DCAT.Dataset not in get(dct, "@type"):
+        raise TypeError(
+            f"expected IRI '{iri}' to be a dataset, but got: "
+            f"{', '.join(get(dct, '@type'))}"
+        )
+
+    if distributions is None:
+        distributions = get(dct, "distribution")
+
+    data = []
+    for dist in distributions:
+        url = dist.get("downloadURL", dist.get("accessURL"))  # type: ignore
+        if url:
+            p = urlparse(url)
+            if p.scheme.startswith('http'):
+                response = requests.get(url)
+                if response.ok:
+                    data.append(response.content)
+            elif p.scheme == 'file':
+                path = Path(url2pathname(p.path))
+                if path.exists():
+                    data.append(path.read_bytes())
+    if len(data) == 1:
+        return data[0]
+    elif len(data) > 1:
+        return data
+    else:
+        raise IOError(f"Cannot access dataset: {iri}")
+
+
 class DataDoc:
+
+    """
+        Methods to init a triple store, add triples from yaml or csv in the
+        store, find triple from the store and fetch file from IRI.
+    """
 
     def __init__(self, backend: str = 'rdflib', base_iri: str = None,
                  database: str = None, package: str = None):
         self.store = Triplestore(backend, base_iri, database, package)
 
     def bind(self, prefix: List[str]):
+        """ Bind a list of prefix to the triple store """
         for item in prefix:
             if isinstance(item, tuple):
                 if len(item) == 2:
@@ -34,9 +104,11 @@ class DataDoc:
                 self.store.bind(pr, ns)
 
     def parse(self, src: Path, fmt: str = None):
+        """ Parse an existing graph and add it to the triple store """
         self.store.parse(src, fmt)
 
     def dump(self, dst: Path, fmt: str = 'turtle'):
+        """ Dump the store to file """
         self.store.serialize(dst, fmt)
 
     def add(self, inp: Path, fmt: str = None, csv_options: List[str] = None,
@@ -117,28 +189,10 @@ class DataDoc:
         return s
 
     def fetch(self, iri: str, output: Path = None):
-        data = load(self.store, iri)
-        if output:
-            with open(output, "wb") as f:
-                f.write(data)
+        """ Find the download URL of a file from an IRI and returns the content
+            of the file.
+        """
+        data = load_dataset(self.store, iri)
+        if isinstance(data, bytes) & isinstance(output, Path):
+            output.write_bytes(data)
         return data
-
-
-if __name__ == '__main__':
-
-    thisdir = Path(__file__).resolve().parent
-    inpdir = thisdir / 'input'
-    outdir = thisdir / 'output'
-    outdir.mkdir(exist_ok=True)
-
-    datadoc = DataDoc()
-    datadoc.bind(['pm=https://www.ntnu.edu/physmet/data#'])
-    kb = outdir / 'kb.ttl'
-    if kb.exists():
-        datadoc.parse(kb)
-    # datadoc.add(inpdir / 'tem.csv')
-    # datadoc.dump(kb)
-    found = datadoc.find(typ='pm:BrightFieldImage')
-    print(found)
-    data = datadoc.fetch('pm:TEM_BF_lowmag', outdir / 'TEM_BF_lowmag.png')
-    print(data[0:10] if data else 'no data')

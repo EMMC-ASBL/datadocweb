@@ -1,0 +1,56 @@
+# description of pyproject.toml
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+# https://github.com/pypa/sampleproject/blob/main/pyproject.toml
+#
+[project]
+name = "datadocweb"
+version = "2025.1"
+description = "Data Documentation Web Tools"
+readme = "README.md"
+requires-python = ">=3.7"
+# license = {file = "LICENSE.txt"}
+authors = [
+  {name="Terence Coudert", email="terence.coudert@sintef.no"}
+]
+# For a list of valid classifiers, see https://pypi.org/classifiers/
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  # Indicate who your project is intended for
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Build Tools",
+  # Pick your license as you wish
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+  "rdflib",
+  "requests"
+]
+# $ pip install sampleproject[dev]
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test = ["coverage"]
+
+[project.urls]  # Optional
+"Homepage" = "https://gitlab.sintef.no/sfi-physmet/datadocweb"
+"Bug Reports" = "https://gitlab.sintef.no/sfi-physmet/datadocweb/-/issues"
+"Funding" = "https://www.ntnu.edu/physmet"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# This is configuration specific to the `setuptools` build backend.
+[tool.setuptools.package-data]
+"datadocweb.django.templates" = ["*.html", "*.js"]
+
+[build-system]
+# These are the assumed default build requirements from pip:
+# https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
