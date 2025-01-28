@@ -2,3 +2,5 @@ rdflib
 requests
 tripper[datadoc] @ git+https://github.com/EMMC-ASBL/tripper.git@master
 PyBackTrip @ git+https://github.com/EMMC-ASBL/PyBackTrip.git@main
+azure-storage-blob
+Django

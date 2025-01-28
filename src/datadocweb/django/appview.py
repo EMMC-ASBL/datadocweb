@@ -5,6 +5,7 @@
     https://docs.djangoproject.com/en/5.0/topics/class-based-views/
 """
 
+from typing import List
 from pathlib import Path
 from uuid import UUID
 import json
@@ -14,6 +15,34 @@ from django.shortcuts import render
 from django.conf import settings
 from django.apps import apps
 from django.views import View
+
+from azure.storage.blob import BlobServiceClient
+
+
+class Validation(dict):
+
+    def __getattr__(self, attr):
+        return self.get(attr, '')
+
+    def __call__(self, *keys):
+        items = []
+        for key in keys:
+            if key:
+                if isinstance(key, str):
+                    items = key.strip().split()
+                elif isinstance(key, (list, tuple)):
+                    items += [k for k in key if isinstance(k, str)]
+        return [self.get(item, '') for item in items]
+
+    def load_json(self, attr, default_value=None):
+        value = self.get(attr, None)
+        result = default_value
+        if value:
+            try:
+                result = json.loads(value)
+            except Exception:
+                result = default_value
+        return result
 
 
 class CheckList:
@@ -75,9 +104,12 @@ class CheckList:
         return value, error
 
     def validate(self, **extra):
+        """ Validate and convert required values """
         errors = []
         empty = []
-        values = extra if extra else {}
+        values = Validation()
+        if extra:
+            values.update(extra)
         for name in self.names:
             value = self.parent.get_str(name)
             if name in self.required:
@@ -96,10 +128,10 @@ class CheckList:
         if empty:
             p = 'properties are' if len(empty) > 1 else 'property is'
             n = ', '.join([c.capitalize() for c in empty])
-            err = f'the following {p} required: {n}.\n'
+            errors.append(f'the following {p} required: {n}.')
         if errors:
-            err = '\n'.join(errors)
-        return {'error': err} if err else values
+            values['error'] = '\n'.join(errors)
+        return values
 
 
 class Query:
@@ -341,3 +373,78 @@ class AppView(View):
         err = {'error': message}
         err.update(kwargs)
         self['error'] = err
+
+    def _get_azure_container(self):
+        cfg = settings.DATABASES['datadocweb']
+        conn_str = cfg.get('CONNECTION_STRING', cfg.get('location', ''))
+        if conn_str:
+            container = cfg.get('CONTAINER', '')
+            if not container:
+                if isinstance(cfg.get('options', None), dict):
+                    container = cfg['options'].get('container', '')
+            if container:
+                blob = BlobServiceClient.from_connection_string(conn_str)
+                return blob.get_container_client(container)
+            else:
+                raise ValueError('Azure Container not defined.')
+        else:
+            raise ValueError('Azure Connection String not defined.')
+
+    def read_bytes(self, remotepath: str, localpath: Path = None):
+        """ Read a remote file from an Azure Storage """
+        cont = self._get_azure_container()
+        blob = cont.get_blob_client(remotepath)
+        filedata = None
+        if blob.exists():
+            filedata = blob.download_blob().content_as_bytes()
+            if isinstance(localpath, Path):
+                localpath.write_bytes(filedata)
+        return filedata
+
+    def write_bytes(self, filedata: bytes, remotepath: str):
+        """ Write a remote file in an Azure Storage """
+        if isinstance(filedata, Path):
+            filedata = filedata.read_bytes()
+        result = False
+        if isinstance(filedata, bytes):
+            cont = self._get_azure_container()
+            blob = cont.upload_blob(remotepath, filedata, overwrite=True)
+            result = blob.exists()
+        return result
+
+    def list_blobs(self, prefix: str, fmt: str = 'name') -> List[str]:
+        """ List the files in the Azure blob storage
+
+            database: str
+                Get the connection string of the database in settings.DATABASE
+            prefix: str
+                Return all blobs with the given prefix
+            fmt: str
+                Format of the returned item (comma sperated value):
+                name,size,modified,size_str,modified_str
+        """
+        def sizeof_fmt(num):
+            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                if abs(num) < 1024.0:
+                    return f'{num:3.1f} {unit}'
+                num /= 1024.0
+            return f'{num:.1f} PB'
+
+        items = []
+        cont = self._get_azure_container()
+        if cont is not None:
+            if fmt == 'name':
+                for blob in cont.list_blobs(name_starts_with=prefix):
+                    items.append(blob.name)
+            else:
+                attr = [x.strip() for x in fmt.split(',')]
+                for blob in cont.list_blobs(name_starts_with=prefix):
+                    item = dict(
+                        name=blob.name,
+                        size=blob.size,
+                        size_str=sizeof_fmt(blob.size),
+                        modified=blob.last_modified,
+                        modified_str=str(blob.last_modified)[0: 16]
+                    )
+                    items.append({k: item[k] for k in attr if k in item})
+        return items

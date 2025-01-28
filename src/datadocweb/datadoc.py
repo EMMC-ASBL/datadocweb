@@ -113,6 +113,7 @@ class DataDoc:
 
     def add(self, inp: Path, fmt: str = None, csv_options: List[str] = None,
             context: str = None):
+        """ Add triples from csv or yml files """
         ts = self.store
         extension = fmt if fmt else inp.suffix
         ext = extension.lower().lstrip(".")
@@ -131,11 +132,17 @@ class DataDoc:
         else:
             raise ValueError(f"Unknown input format: {fmt}")
 
+    def add_table(self, rows, columns, prefixes):
+        """ Add triples from a table """
+        table = TableDoc(columns, rows, prefixes=prefixes)
+        table.save((self.store))
+
     def find(self,
              criteria: List[str] = None,
              typ: str = None,
              fmt: str = None,
              output: Path = None):
+        """ Find triples from the store """
         criterias = {}
         contains = {}
         if criteria:
@@ -165,6 +172,9 @@ class DataDoc:
         # Create output
         if fmt in ("iris", "txt"):
             s = "\n".join(iris)
+        elif fmt == "dict":
+            ts = self.store
+            s = [load_dict(ts, iri) for iri in iris]
         elif fmt == "json":
             ts = self.store
             s = json.dumps([load_dict(ts, iri) for iri in iris], indent=2)
@@ -189,8 +199,8 @@ class DataDoc:
         return s
 
     def fetch(self, iri: str, output: Path = None):
-        """ Find the download URL of a file from an IRI and returns the content
-            of the file.
+        """ Find the file URL from an IRI, then download and returns the
+            content of the file.
         """
         data = load_dataset(self.store, iri)
         if isinstance(data, bytes) & isinstance(output, Path):

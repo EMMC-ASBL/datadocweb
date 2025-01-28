@@ -24,12 +24,12 @@ class DataDocUnitTest(unittest.TestCase):
         kb = outdir / 'kb.ttl'
         if kb.exists():
             datadoc.parse(kb)
-        datadoc.add(inpdir / 'tem.csv')
-        datadoc.dump(kb)
+        # datadoc.add(inpdir / 'tem.csv')
+        # datadoc.dump(kb)
         # found = datadoc.find(typ='pm:BrightFieldImage')
         # print(found)
-        # data = datadoc.fetch('pm:TEM_BF_lowmag', outdir / 'TEM_BF_lowmag.png')
-        # print(data[0:10] if data else 'no data')
+        data = datadoc.fetch('pm:TEM_BF_lowmag', outdir / 'TEM_BF_lowmag.png')
+        print(data[0:10] if data else 'no data')
 
 
 if __name__ == '__main__':
