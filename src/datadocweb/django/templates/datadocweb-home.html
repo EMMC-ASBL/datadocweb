@@ -6,7 +6,7 @@
     <div class="btn-group me-2 btn-group-sm" role="group">
       <div class="input-group input-group-sm">
         <div class="input-group-text" id="btn-database">Database</div>
-        <select class="form-select"
+        <select id="graph" class="form-select"
                 aria-label="Select database" aria-describedby="btn-database">
           {% for item in graphs %}
           <option value="{{ item }}">{{ item }}</option>
@@ -17,10 +17,11 @@
     <div class="btn-group me-2 btn-group-sm" role="group">
       <div class="input-group input-group-sm">
         <div class="input-group-text" id="btn-search">Search</div>
-        <input type="text" class="form-control"
+        <input id="query" type="text" class="form-control"
+              style="min-width: 400px;"
               placeholder="Enter search criteria"
               aria-label="Search input" aria-describedby="btn-search">
-        <button type="button" class="btn btn-primary">
+        <button type="button" class="btn btn-primary" onclick="onSearch()">
           <i class="bi bi-search"></i>
         </button>
       </div>
@@ -34,4 +35,8 @@
   </div>
   <p>no data</p>
 </div>
+{% endblock %}
+{% block javascript %}
+{{ block.super }}
+{% include 'datadocweb-home.js' %}
 {% endblock %}

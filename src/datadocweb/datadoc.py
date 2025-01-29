@@ -95,13 +95,17 @@ class DataDoc:
 
     def bind(self, prefix: List[str]):
         """ Bind a list of prefix to the triple store """
-        for item in prefix:
-            if isinstance(item, tuple):
-                if len(item) == 2:
-                    self.store.bind(item[0], item[1])
-            elif isinstance(item, str):
-                pr, ns = item.split('=', 1)
+        if isinstance(prefix, dict):
+            for pr, ns in prefix.items():
                 self.store.bind(pr, ns)
+        elif isinstance(prefix, list):
+            for item in prefix:
+                if isinstance(item, tuple):
+                    if len(item) == 2:
+                        self.store.bind(item[0], item[1])
+                elif isinstance(item, str):
+                    pr, ns = item.split('=', 1)
+                    self.store.bind(pr, ns)
 
     def parse(self, src: Path, fmt: str = None):
         """ Parse an existing graph and add it to the triple store """
@@ -132,10 +136,10 @@ class DataDoc:
         else:
             raise ValueError(f"Unknown input format: {fmt}")
 
-    def add_table(self, rows, columns, prefixes):
+    def add_table(self, columns, rows):
         """ Add triples from a table """
-        table = TableDoc(columns, rows, prefixes=prefixes)
-        table.save((self.store))
+        table = TableDoc(columns, rows)
+        table.save(self.store)
 
     def find(self,
              criteria: List[str] = None,
@@ -190,6 +194,14 @@ class DataDoc:
             with StringIO() as f:
                 td.write_csv(f, prefixes=self.store.namespaces)
                 s = f.getvalue()
+        elif fmt == "table":
+            dicts = [load_dict(self.store, iri) for iri in iris]
+            td = TableDoc.fromdicts(dicts)
+            s = {
+                'columns': td.header,
+                'rows': td.data,
+                'prefix': {k: f'{v}' for k, v in self.store.namespaces.items()}
+            }
         else:
             raise ValueError(f"Unknown format: {fmt}")
 

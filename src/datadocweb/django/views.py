@@ -3,7 +3,7 @@
 
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import gettempdir
 from uuid import uuid4
 
 from django.http import HttpRequest
@@ -24,19 +24,36 @@ class Home(AppView):
 
     def get(self, request: HttpRequest):
         """ Render the home page (with search function) """
+        print(request.GET)
         if self.query.get_str('fmt') == 'json':
             # search in a graph
-            graph, query, typ = self.query.get('g', 'q', 't')
-            backend = 'rdflib'
-            parse = None
-            if graph.endswith('.ttl'):
+            values = self.query.validate('graph query')
+            if 'error' in values:
+                self.json_error(values['error'], status='error')
+            else:
+                graph, query = values('graph query')
                 backend = 'rdflib'
-                parse = self.read_bytes(graph)
-            data = DataDoc(backend)
-            if parse:
-                data.parse(parse, fmt='turtle')
-            found = data.find(typ=typ, fmt='dict')
-            self.json_data('result', {'items': found})
+                graph_file = None
+                if graph.endswith('.ttl'):
+                    backend = 'rdflib'
+                    workdir = Path(gettempdir()) / 'datadocweb'
+                    workdir.mkdir(exist_ok=True)
+                    graph_file = workdir / f'{uuid4()}.ttl'
+                    self.read_bytes(f'graphs/{graph}', graph_file)
+                data = DataDoc(backend)
+                error = ''
+                if graph_file:
+                    if graph_file.exists():
+                        data.parse(graph_file, fmt='turtle')
+                        os.remove(graph_file)
+                    else:
+                        error = f'graph database not found: "{graph}".'
+                if error:
+                    self.json_error(error, status='error')
+                else:
+                    table = data.find(typ=query, fmt='table')
+                    result = {'table': table, 'status': 'success'}
+                    self.json_data('result', result)
         else:
             # render the home page with search input
             graphs = self.list_blobs('graphs/')
@@ -70,28 +87,29 @@ class UploadData(AppView):
         if 'error' in values:
             self.json_error(values['error'], status='error')
         else:
-            with TemporaryDirectory(prefix='datadocweb') as workdir:
-                wd = Path(workdir)
-                graph: str = values['database']
-                filedata = values.load_json('filedata')
-                prefixes = values.load_json('prefixes')
-                graph_file = None
-                if graph.endswith('.ttl'):
-                    backend = 'rdflib'
-                    graph_file = wd / f'{uuid4()}.ttl'
-                    self.read_bytes(f'graphs/{graph}', graph_file)
-                data = DataDoc(backend)
-                if graph_file:
-                    if graph_file.exists():
-                        data.parse(graph_file, fmt='turtle')
-                columns = [c['name'] for c in filedata['columns']]
-                data.add_table(filedata['rows'], columns, prefixes)
-                if graph_file:
-                    data.dump(graph_file, fmt='turtle')
-                    self.write_bytes(graph_file, f'graphs/{graph}')
-                    os.remove(graph_file)
-                answer['nrow'] = len(filedata['rows'])
-                answer['status'] = 'success'
+            workdir = Path(gettempdir()) / 'datadocweb'
+            workdir.mkdir(exist_ok=True)
+            graph: str = values['database']
+            filedata = values.load_json('filedata')
+            prefixes = values.load_json('prefixes')
+            graph_file = None
+            if graph.endswith('.ttl'):
+                backend = 'rdflib'
+                graph_file = workdir / f'{uuid4()}.ttl'
+                self.read_bytes(f'graphs/{graph}', graph_file)
+            data = DataDoc(backend)
+            data.bind(prefixes)
+            if graph_file:
+                if graph_file.exists():
+                    data.parse(graph_file, fmt='turtle')
+            columns = [c['name'] for c in filedata['columns']]
+            data.add_table(columns, filedata['rows'])
+            if graph_file:
+                data.dump(graph_file, fmt='turtle')
+                self.write_bytes(graph_file, f'graphs/{graph}')
+                os.remove(graph_file)
+            answer['nrow'] = len(filedata['rows'])
+            answer['status'] = 'success'
         return self.json_response(answer)
 
 

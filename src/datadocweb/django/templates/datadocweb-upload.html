@@ -24,11 +24,8 @@
               </button>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item"
-                href="javascript:onSelectDatabase('-new-')">New
-                database</a></li>
-                <li><a class="dropdown-item"
-                       href="javascript:onSelectDatabase('Long long file name is here.ttl')">
-                       Long long file name is here.ttl</a></li>
+                       href="javascript:onSelectDatabase('-new-')">
+                  New database</a></li>
                 <li><hr class="dropdown-divider"></li>
                 {% for item in graphs %}
                 <li><a class="dropdown-item"
@@ -129,14 +126,22 @@
             <div id="submit-spinner" style="display:none;">
               <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               Submit data...
-            </div>          
-            <div style="display: none" id="submit-error" class="alert alert-warning alert-dismissible fade show" role="alert">
-              <strong>Error!</strong> <span id="submit-error-text">Hello</span>
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <div style="display: none" id="submit-success" class="alert alert-success alert-dismissible fade show" role="alert">
-              <strong>Success!</strong> <span id="submit-success-text"></span>
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div id="submit-error" style="display: none;">
+              <div style="margin-top: 10px; margin-bottom: 0px;"
+                   role="alert"
+                   class="alert alert-warning alert-dismissible fade show">
+                <strong>Error!</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            </div>
+            <div id="submit-success" style="display: none;">
+              <div style="margin-top: 10px; margin-bottom: 0px;"
+                   role="alert"
+                   class="alert alert-success alert-dismissible fade show">
+                <strong>Success!</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
             </div>
         </form>    
         </div>

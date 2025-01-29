@@ -100,9 +100,7 @@ function getHeader(cells) {
       }
       var col = {};
       col.title = p > 0 ? title.substring(0, p).trim() : title;
-      col.name = col.title.toLowerCase().replaceAll(' ', '_');
-      var u1 = p > 0 ? title.substring(p + 1).trim() : '';
-      col.unit = trimChar(trimChar(u1, ')'), ']');
+      col.name = col.title;
       return col;
     });
   }
@@ -252,6 +250,13 @@ function setFileAsRequired() {
   let filedata = $('#upload-data').val();
   $('#upload-file').prop('required', filedata ? null : true);
 }
+function appendSubmitStatus(sta, msg) {
+  $('#submit-status').remove();
+  let ct = $(`#submit-${sta}`).html().trim()
+           .replace('</strong>', '</strong> ' + msg)
+           .replace('<div ', '<div id="submit-status" ');
+  $('#upload-form').append(ct);
+}
 function onSubmit() {
   setFileAsRequired();
   $('#upload-database').prop('disabled', null);
@@ -264,7 +269,7 @@ function onSubmit() {
     let value = $('#upload-prefix').val();
     if (value) {
       value.split('\n').forEach(line => {
-        let i = line.indexOf(':');
+        let i = line.indexOf('=');
         if (i > 0) {
           let pr = line.substring(0, i).trim();
           let ns = line.substring(i+1).trim();
@@ -278,7 +283,8 @@ function onSubmit() {
       prefixes: JSON.stringify(prefix)
     };
     let csrftoken = form.csrfmiddlewaretoken.value;
-    $('#btn-submit').html($('#submit-spinner').html()).prop('disabled', 'disabled');
+    let spinner = $('#submit-spinner').html();
+    $('#btn-submit').html(spinner).prop('disabled', 'disabled');
     $('#btn-reset').prop('disabled', 'disabled');
     $.ajax({
       type: "POST",
@@ -288,15 +294,11 @@ function onSubmit() {
       data: data,
       success: function (result) {
         $('#btn-submit').text('Submit').prop('disabled', null);
-        $('#btn-reset').prop('disabled', null);
+        $('#btn-reset').prop('disabled', null);        
         if (result.status == 'success') {
-          $('#submit-success-text').text(`${result.nrow} rows inserted.`);
-          $('#submit-error').hide();
-          $('#submit-success').show();
+          appendSubmitStatus('success' , `${result.nrow} rows inserted.`);
         } else {
-          $('#submit-error-text').text(result.error);
-          $('#submit-success').hide();
-          $('#submit-error').show();
+          appendSubmitStatus('error' , result.error);
         }
       }
     });
