@@ -92,6 +92,11 @@ class UploadData(AppView):
             graph: str = values['database']
             filedata = values.load_json('filedata')
             prefixes = values.load_json('prefixes')
+            if prefixes:
+                p = {}
+                for pr, ns in prefixes.items():
+                    p[pr.strip()] = ns.strip('"\'')
+                prefixes = p
             graph_file = None
             if graph.endswith('.ttl'):
                 backend = 'rdflib'
