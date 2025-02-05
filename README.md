@@ -30,7 +30,7 @@ python -m pip install --upgrade pip
 # install in the virtual environment the required Python packages
 pip install -r requirements.txt
 # install the package "datadocweb" in "editable" mode (for development)
-pip install --editable . --user
+pip install --editable .
 ```
 
 On Linux:
@@ -46,7 +46,7 @@ python -m pip install --upgrade pip
 # install in the virtual environment the required Python packages
 pip install -r requirements.txt
 # install the package "datadocweb" in "editable" mode (for development)
-pip install --editable . --user
+pip install --editable .
 ```
 
 If your are using Visual Studio Code, press F1 then search and select the
