@@ -14,8 +14,8 @@ the [Django Documentation](https://docs.djangoproject.com/en/5.1/).
 Installation
 ------------
 
-Clone the repository [datadocweb](https://gitlab.sintef.no/sfi-physmet/datadocweb) and install the Python package.
-git@gitlab.sintef.no:sfi-physmet/datadoc.git
+Clone the repository [datadocweb](https://github.com/EMMC-ASBL/datadocweb.git)
+and install the Python package.
 
 On Windows, with Python 3.11 (replace 3.11 by the version of your Python):
 
