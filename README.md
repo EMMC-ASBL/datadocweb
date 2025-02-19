@@ -20,7 +20,7 @@ git@gitlab.sintef.no:sfi-physmet/datadoc.git
 On Windows, with Python 3.11 (replace 3.11 by the version of your Python):
 
 ```sh
-git clone git@gitlab.sintef.no:sfi-physmet/datadocweb.git
+git clone git@github.com:EMMC-ASBL/datadocweb.git
 cd datadocweb
 # create and activate a new Python virtual environment
 py -3.11 -m pip install pipenv
@@ -30,13 +30,13 @@ python -m pip install --upgrade pip
 # install in the virtual environment the required Python packages
 pip install -r requirements.txt
 # install the package "datadocweb" in "editable" mode (for development)
-pip install --editable . --user
+pip install --editable .
 ```
 
 On Linux:
 
 ```sh
-git clone git@gitlab.sintef.no:sfi-physmet/datadocweb.git
+git clone git@github.com:EMMC-ASBL/datadocweb.git
 cd datadocweb
 # create and activate a new Python virtual environment
 python3 -m pip install --user pipenv
@@ -46,7 +46,7 @@ python -m pip install --upgrade pip
 # install in the virtual environment the required Python packages
 pip install -r requirements.txt
 # install the package "datadocweb" in "editable" mode (for development)
-pip install --editable . --user
+pip install --editable .
 ```
 
 If your are using Visual Studio Code, press F1 then search and select the
@@ -74,27 +74,6 @@ python manage.py runserver
 > [!WARNING]
 > Only a Azure Storage is used to store the triples in a ```.ttl``` file. The
 > Azure Storage connection string must be provided in the ```.env``` file.
-
-
-Tasks to build an web interface for datadoc command
----------------------------------------------------
-
-1. Django project ?
-2. Web page to import
-
-    - Select files to import (or drag and drop).-
-    - if csv file, create a form to select the delimiter, the header row, and
-       the rows to import.
-    - if Excel file, create a form to select the worksheet, the header row, and
-       the rows to import.
-    - if csv or Excel, select the corresponding DCAT name to the header and
-      select the column to import.
-
-3. Web page to find
-
-    - Create a form to enter criteria, type.
-    - Visualzie the result as a table
-    - Click on a link to download a file
 
 External links
 --------------

@@ -38,8 +38,8 @@ dev = ["check-manifest"]
 test = ["coverage"]
 
 [project.urls]  # Optional
-"Homepage" = "https://gitlab.sintef.no/sfi-physmet/datadocweb"
-"Bug Reports" = "https://gitlab.sintef.no/sfi-physmet/datadocweb/-/issues"
+"Homepage" = "https://github.com/EMMC-ASBL/datadocweb/tree/main"
+"Bug Reports" = "https://github.com/EMMC-ASBL/datadocweb/issues"
 "Funding" = "https://www.ntnu.edu/physmet"
 
 [tool.setuptools.packages.find]
