@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block body %}
+<nav class="navbar navbar-expand-sm bg-light navbar-light fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'index' %}">
+      datadocweb
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsible-navbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="collapsible-navbar">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link {{ menu_datadocweb_active }}" href="{% url 'datadocweb:home' %}"
+             id="menu-toolbox">
+             <i class="bi bi-box-seam"></i> DataDoc</a>
+        </li>        
+        <li class="nav-item">
+          <a class="nav-link {{ menu_about_active }}" href="{% url 'about' %}">
+            <i class="bi bi-question-circle"></i> About</a>
+        </li>    
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="btn btn-outline-primary me-2" href="#"
+             title="{{ user.email }}"
+             data-bs-toggle="popover" data-bs-trigger="hover"
+             data-bs-placement="bottom"
+             data-bs-content="{{ user.roles_str }}">
+          {{ user.name }}
+          </a>          
+        </li>
+        <li class="nav-item">
+          <a class="btn btn-primary" href="#">Sign out</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+{% block content %}
+{% endblock %}
+{% endblock %}
+{% block javascript %}
+function getActiveMenu() {
+  var menu = $('a.nav-link.active')[0].id;
+  return menu ? menu.split('-')[1] : 'toolbox';
+}
+function resetFormValidation(formid) {
+  var form = $(formid)[0];
+  form.classList.remove('was-validated');
+  form.classList.add('needs-validation');
+  $(formid).prop('novalidate', true);
+}
+{% endblock %}

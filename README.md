@@ -53,6 +53,29 @@ If your are using Visual Studio Code, press F1 then search and select the
 command "Python: Select Interpreter", and then select, in the dropdown list,
 the virtual environment name which starts with "datadocweb-".
 
+Testing the Django app
+----------------------
+
+A Django project is available to test and develop the Django app. Follow the
+steps to run the testing app:
+
+```sh
+cd tests
+cd django_project
+# create a .env file to set-up database and/or authentication
+python manage.py envfile
+# prepare Django sqlite database
+python manage.py migrate
+# run the server
+python manage.py runserver
+# open in a web browser http://localhost:8000/
+```
+
+> [!WARNING]
+> Only a Azure Storage is used to store the triples in a ```.ttl``` file. The
+> Azure Storage connection string must be provided in the ```.env``` file.
+
+
 Tasks to build an web interface for datadoc command
 ---------------------------------------------------
 
