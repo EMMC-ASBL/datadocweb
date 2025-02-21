@@ -93,8 +93,10 @@ class DataDoc:
                  database: str = None, package: str = None):
         self.store = Triplestore(backend, base_iri, database, package)
 
-    def bind(self, prefix: List[str]):
+    def bind(self, prefix: List[str] = None, **kwargs):
         """ Bind a list of prefix to the triple store """
+        for pr, ns in kwargs.items():
+            self.store.bind(pr, ns)
         if isinstance(prefix, dict):
             for pr, ns in prefix.items():
                 self.store.bind(pr, ns)
@@ -161,8 +163,7 @@ class DataDoc:
         iris = search_iris(
             ts=self.store,
             type=typ,
-            criterias=criterias,
-            contains=contains
+            criterias=criterias
         )
 
         # Infer format
