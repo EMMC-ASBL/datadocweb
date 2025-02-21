@@ -95,5 +95,36 @@ class AzureStorageTest(unittest.TestCase):
             self.assertIn('test-tem.ttl', files)
 
 
+class ServerStorageTest(unittest.TestCase):
+
+    def test_datadoc(self):
+        env = environ.Env()
+        env.read_env(thisdir / '.env')
+        cs = env.str('FUSEKI', '')
+        if cs:
+            config = {
+                'ENGINE': 'sparqlwrapper',
+                'NAME': 'My Fuseki Storage',
+                'BASE_IRI': env('FUSEKI'),
+                'UPDATE_IRI': env('FUSEKI_UPDATE'),
+                'USERNAME': env('FUSEKI_USR'),
+                'PASSWORD': env('FUSEKI_PWD'),
+                'DATABASES': ['test-tem']
+            }
+            storage = create_storage(config)
+
+            databases = storage.databases()
+            self.assertIn('test-tem', databases)
+
+            prefix = dict(pm='https://www.ntnu.edu/physmet/data#')
+
+            datadoc = storage.datadoc(prefixes=prefix)
+            # datadoc.add(thisdir / 'input/tem.csv')
+            # storage.dump(datadoc)
+
+            table1 = datadoc.find(typ='pm:BrightFieldImage', fmt='table')
+            self.assertEqual(len(table1['rows']), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

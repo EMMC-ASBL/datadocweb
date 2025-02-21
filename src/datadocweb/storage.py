@@ -43,9 +43,13 @@ class Storage:
     engine: str = 'none'
 
     def __init__(self, config: dict):
+        # the parameters of the storage
         self.config = config
+        # the storage name / label
+        self.name = self.find_config('name')
 
     def _new_datadoc(self, options: dict, prefixes: dict, parse: Path = None):
+        """ Create a new DataDoc instance """
         datadoc = DataDoc(**options)
         if prefixes:
             datadoc.bind(prefixes)
@@ -54,7 +58,7 @@ class Storage:
                 datadoc.parse(parse, fmt='turtle')
         return datadoc
 
-    def find_config(self, *keys):
+    def find_config(self, *keys) -> str:
         """ Find a config value """
         for key in keys:
             val = find_config(self.config, key, None)
@@ -62,11 +66,11 @@ class Storage:
                 return val
         return ''
 
-    def databases(self):
+    def databases(self) -> List[str]:
         """ Returns the list of database/triplestore for this storage """
         return []
 
-    def datadoc(self, database: str = '', prefixes: dict = None):
+    def datadoc(self, database: str = '', prefixes: dict = None) -> DataDoc:
         """ Returns an instance of DataDoc with the right triplestore """
         raise NotImplementedError
 
@@ -246,6 +250,12 @@ class ServerStorage(Storage):
         for key in ['base_iri', 'update_iri', 'username', 'password']:
             self.options[key] = self.find_config(key)
         names = self.find_config('databases')
+        if isinstance(names, str):
+            names = [x.strip() for x in names.split(',')]
+        elif isinstance(names, list):
+            names = [x.strip() for x in names if isinstance(x, str)]
+        else:
+            names = []
         self.database_names = names
         self.default_database = names[0] if names else ''
 

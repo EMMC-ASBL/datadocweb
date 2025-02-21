@@ -454,17 +454,23 @@ class AppView(View):
         """ Returns the storage names from the settings """
         names = []
         for key, cfg in settings.DATABASES.items():
-            if key.starstwith('datadocweb'):
+            if key.startswith('datadocweb'):
                 name = cfg.get('NAME', '')
                 engine = cfg.get('ENGINE', '')
                 if name and engine:
                     names.append(name)
+        if not names:
+            msg = 'you must define at least one storage in the settings'
+            raise ValueError(msg)
         return names
 
-    def get_storage(self, name: str):
+    def get_storage(self, name: str = ''):
         """ Returns the storage from the given storage name """
+        if not name:
+            names = self.get_storage_names()
+            name = self.query.get_str('storage', names[0])
         for key, cfg in settings.DATABASES.items():
-            if key.starstwith('datadocweb'):
+            if key.startswith('datadocweb'):
                 if cfg.get('NAME', '') == name:
                     return create_storage(cfg)
         return None

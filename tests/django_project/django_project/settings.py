@@ -105,36 +105,31 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    },
-    'datadocweb': {
-        'ENGINE': 'azure.storage.blob.BlobServiceClient',
-        'CONNECTION_STRING': env('AZURE_STORAGE'),
-        'CONTAINER': env('AZURE_STORAGE_CONTAINER')
-    },
-    # in development: multiple storage type
-    # 'datadocweb_files': {
-    #     'ENGINE': 'tempfile',
-    #     'NAME': 'Temporary files',
-    #     'PATH': '{tempdir}/datadocweb/'
-    # },
-    # 'datadocweb_azure': {
-    #     'ENGINE': 'azure.storage.blob.BlobServiceClient',
-    #     'NAME': 'My Blob Storage',
-    #     'CONNECTION_STRING': env('AZURE_STORAGE'),
-    #     'CONTAINER': env('AZURE_STORAGE_CONTAINER'),
-    #     'FOLDER': env('AZURE_STORAGE_FOLDER')
-    # },
-    # 'datadocweb_fuseki': {
-    #     'ENGINE': 'sparqlwrapper',
-    #     'NAME': 'My Fuseki Storage',
-    #     'BASE_IRI': env('FUSEKI'),
-    #     'UPDATE_IRI': env('FUSEKI_UPDATE')
-    #     'USERNAME': env('FUSEKI_USR'),
-    #     'PASSWORD': env('FUSEKI_PWD'),
-    #     'DATABASES': ['test-tem', 'test-sem']
-    # }
+    }
 }
-
+if env.str('AZURE_STORAGE', ''):
+    DATABASES['datadocweb_azure'] = {
+        'ENGINE': 'azure.storage.blob',
+        'NAME': 'My Blob Storage',
+        'CONNECTION_STRING': env('AZURE_STORAGE'),
+        'CONTAINER': env('AZURE_STORAGE_CONTAINER'),
+        'FOLDER': env('AZURE_STORAGE_FOLDER')
+    }
+if env.str('FUSEKI', ''):
+    DATABASES['datadocweb_fuseki'] = {
+        'ENGINE': 'sparqlwrapper',
+        'NAME': 'My Fuseki Storage',
+        'BASE_IRI': env('FUSEKI'),
+        'UPDATE_IRI': env('FUSEKI_UPDATE'),
+        'USERNAME': env.str('FUSEKI_USR', ''),
+        'PASSWORD': env.str('FUSEKI_PWD', ''),
+        'DATABASES': env.str('FUSEKI_DATABASES', '')
+    }
+DATABASES['datadocweb_files'] = {
+    'ENGINE': 'tempfile',
+    'NAME': 'Temporary files',
+    'PATH': '{tempdir}/datadocweb/'
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
