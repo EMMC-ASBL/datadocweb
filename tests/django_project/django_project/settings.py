@@ -110,7 +110,29 @@ DATABASES = {
         'ENGINE': 'azure.storage.blob.BlobServiceClient',
         'CONNECTION_STRING': env('AZURE_STORAGE'),
         'CONTAINER': env('AZURE_STORAGE_CONTAINER')
-    }
+    },
+    # in development: multiple storage type
+    # 'datadocweb_files': {
+    #     'ENGINE': 'tempfile',
+    #     'NAME': 'Temporary files',
+    #     'PATH': '{tempdir}/datadocweb/'
+    # },
+    # 'datadocweb_azure': {
+    #     'ENGINE': 'azure.storage.blob.BlobServiceClient',
+    #     'NAME': 'My Blob Storage',
+    #     'CONNECTION_STRING': env('AZURE_STORAGE'),
+    #     'CONTAINER': env('AZURE_STORAGE_CONTAINER'),
+    #     'FOLDER': env('AZURE_STORAGE_FOLDER')
+    # },
+    # 'datadocweb_fuseki': {
+    #     'ENGINE': 'sparqlwrapper',
+    #     'NAME': 'My Fuseki Storage',
+    #     'BASE_IRI': env('FUSEKI'),
+    #     'UPDATE_IRI': env('FUSEKI_UPDATE')
+    #     'USERNAME': env('FUSEKI_USR'),
+    #     'PASSWORD': env('FUSEKI_PWD'),
+    #     'DATABASES': ['test-tem', 'test-sem']
+    # }
 }
 
 

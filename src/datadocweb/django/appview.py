@@ -17,6 +17,7 @@ from django.apps import apps
 from django.views import View
 
 from azure.storage.blob import BlobServiceClient
+from datadocweb.storage import create_storage
 
 
 class Validation(dict):
@@ -448,3 +449,22 @@ class AppView(View):
                     )
                     items.append({k: item[k] for k in attr if k in item})
         return items
+
+    def get_storage_names(self):
+        """ Returns the storage names from the settings """
+        names = []
+        for key, cfg in settings.DATABASES.items():
+            if key.starstwith('datadocweb'):
+                name = cfg.get('NAME', '')
+                engine = cfg.get('ENGINE', '')
+                if name and engine:
+                    names.append(name)
+        return names
+
+    def get_storage(self, name: str):
+        """ Returns the storage from the given storage name """
+        for key, cfg in settings.DATABASES.items():
+            if key.starstwith('datadocweb'):
+                if cfg.get('NAME', '') == name:
+                    return create_storage(cfg)
+        return None
