@@ -1,5 +1,5 @@
 
-""" The Django App config for Raufoss DB """
+""" The Django App config for datadocweb """
 
 from django.apps import AppConfig
 

@@ -17,6 +17,7 @@ from django.apps import apps
 from django.views import View
 
 from azure.storage.blob import BlobServiceClient
+from datadocweb.storage import create_storage
 
 
 class Validation(dict):
@@ -223,9 +224,17 @@ class AppView(View):
         self.json_keys = []
         self.query = Query()
 
+    def get_config(self, key, default):
+        if hasattr(settings, 'DATADOCWEB'):
+            cfg = settings.DATADOCWEB
+            return cfg.get(key, cfg.get(key.upper(), default))
+        return default
+
     def dispatch(self, request, *args, **kwargs):
         """ Dispatch the request HTTP method to the view class method """
         self.context_data = {}
+        key = 'base_template'
+        self[key] = self.get_config(key, 'content.html')
         self['viewname'] = self.name
         info = []
         for app in apps.get_app_configs():
@@ -448,3 +457,12 @@ class AppView(View):
                     )
                     items.append({k: item[k] for k in attr if k in item})
         return items
+
+    def get_triplestore(self):
+        """ Returns the triplestore storage from the settings """
+        cfg = self.get_config('triplestore', None)
+        if cfg:
+            return create_storage(cfg)
+        else:
+            key = 'settings.DATADOCWEB["TRIPLESTORE"]'
+            raise KeyError(f'you must define a triplestore in {key}.')

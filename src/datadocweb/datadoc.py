@@ -89,9 +89,19 @@ class DataDoc:
         store, find triple from the store and fetch file from IRI.
     """
 
-    def __init__(self, backend: str = 'rdflib', base_iri: str = None,
-                 database: str = None, package: str = None):
-        self.store = Triplestore(backend, base_iri, database, package)
+    def __init__(self, **kwargs):
+        """ Init a DataDoc object the kwargs can contains:
+            - backend: str, default backend="rdflib"
+            - base_iri: str
+            - update_iri: str
+            - database: str,
+            - username: str,
+            - password: str
+        """
+        backend = kwargs.get('backend', '')
+        if not backend:
+            kwargs['backend'] = 'rdflib'
+        self.store = Triplestore(**kwargs)
 
     def bind(self, prefix: List[str] = None, **kwargs):
         """ Bind a list of prefix to the triple store """
