@@ -18,8 +18,7 @@ class Home(AppView):
 
     def get(self, request: HttpRequest):
         """ Render the home page (with search function) """
-        names = self.get_storage_names()
-        storage = self.get_storage(self.query.get_str('storage', names[0]))
+        storage = self.get_triplestore()
         if self.query.get_str('fmt') == 'json':
             # search in a graph
             values = self.query.validate('graph query')
@@ -36,9 +35,9 @@ class Home(AppView):
                     self.json_error(str(err), status='error')
         else:
             # render the home page with search input
-            self['storages'] = names
             self['storage'] = storage.name
             self['graphs'] = storage.databases()
+            print(storage, storage.path)
         return self.render(request)
 
 
@@ -57,16 +56,14 @@ class UploadData(AppView):
 
     def get(self, request: HttpRequest):
         """ Render the form to upload data / files """
-        names = self.get_storage_names()
-        storage = self.get_storage(self.query.get_str('storage', names[0]))
-        self['storages'] = names
+        storage = self.get_triplestore()
         self['storage'] = storage.name
         self['graphs'] = storage.databases()
         return self.render(request)
 
     def post(self, request: HttpRequest):
         """ Post the form data and add the data in the triple store """
-        storage = self.get_storage()
+        storage = self.get_triplestore()
         answer = {'nrow': 0, 'status': ''}
         values = self.query.validate('database filedata prefixes')
         if 'error' in values:

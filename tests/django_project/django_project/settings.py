@@ -107,28 +107,31 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-if env.str('AZURE_STORAGE', ''):
-    DATABASES['datadocweb_azure'] = {
-        'ENGINE': 'azure.storage.blob',
-        'NAME': 'My Blob Storage',
-        'CONNECTION_STRING': env('AZURE_STORAGE'),
-        'CONTAINER': env('AZURE_STORAGE_CONTAINER'),
-        'FOLDER': env('AZURE_STORAGE_FOLDER')
+
+# Config for the datadocweb app
+DATADOCWEB = {
+    'base_template': 'content.html',
+    'triplestore': {
+        'ENGINE': 'tempfile',
+        'NAME': 'Temporary files',
+        'PATH': '{tempdir}/datadocweb/'
     }
-if env.str('FUSEKI', ''):
-    DATABASES['datadocweb_fuseki'] = {
-        'ENGINE': 'sparqlwrapper',
-        'NAME': 'My Fuseki Storage',
-        'BASE_IRI': env('FUSEKI'),
-        'UPDATE_IRI': env('FUSEKI_UPDATE'),
-        'USERNAME': env.str('FUSEKI_USR', ''),
-        'PASSWORD': env.str('FUSEKI_PWD', ''),
-        'DATABASES': env.str('FUSEKI_DATABASES', '')
-    }
-DATABASES['datadocweb_files'] = {
-    'ENGINE': 'tempfile',
-    'NAME': 'Temporary files',
-    'PATH': '{tempdir}/datadocweb/'
+    # 'triplestore': {
+    #     'ENGINE': 'azure.storage.blob',
+    #     'NAME': 'My Blob Storage',
+    #     'CONNECTION_STRING': env('AZURE_STORAGE'),
+    #     'CONTAINER': env('AZURE_STORAGE_CONTAINER'),
+    #     'FOLDER': env('AZURE_STORAGE_FOLDER')
+    # }
+    # 'triplestore': {
+    #     'ENGINE': 'sparqlwrapper',
+    #     'NAME': 'My Fuseki Storage',
+    #     'BASE_IRI': env('FUSEKI'),
+    #     'UPDATE_IRI': env('FUSEKI_UPDATE'),
+    #     'USERNAME': env.str('FUSEKI_USR', ''),
+    #     'PASSWORD': env.str('FUSEKI_PWD', ''),
+    #     'DATABASES': env.str('FUSEKI_DATABASES', '')
+    # }
 }
 
 # Password validation
