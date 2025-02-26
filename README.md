@@ -71,9 +71,11 @@ python manage.py runserver
 # open in a web browser http://localhost:8000/
 ```
 
-> [!WARNING]
-> Only a Azure Storage is used to store the triples in a ```.ttl``` file. The
-> Azure Storage connection string must be provided in the ```.env``` file.
+In the settings.py file, you can define the triple store options
+(see the dict DATADOCWEB). A triple store could be: the local 
+(or a remote) file system that store triples in one ttl file,
+or a triple store could be a online server (the comunication 
+with the server will be done by using the library sparqlwrapper).
 
 External links
 --------------
