@@ -1,4 +1,4 @@
-function showSearchError(sta, msg) {
+function showSearchError(msg) {
   $('#search-status').remove();
   let ct = $('#search-error').html().trim()
            .replace('</strong>', '</strong> ' + msg)

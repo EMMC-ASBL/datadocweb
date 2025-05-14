@@ -37,7 +37,6 @@ class Home(AppView):
             # render the home page with search input
             self['storage'] = storage.name
             self['graphs'] = storage.databases()
-            print(storage, storage.path)
         return self.render(request)
 
 

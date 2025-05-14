@@ -7,6 +7,7 @@
 
 from typing import List, Dict
 import os
+import json
 from pathlib import Path
 from tempfile import gettempdir
 from uuid import uuid4
@@ -52,7 +53,7 @@ class Storage:
         """ Create a new DataDoc instance """
         datadoc = DataDoc(**options)
         if prefixes:
-            datadoc.bind(prefixes)
+            datadoc.bind(**prefixes)
         if parse:
             if parse.exists():
                 datadoc.parse(parse, fmt='turtle')
@@ -258,6 +259,13 @@ class ServerStorage(Storage):
             names = []
         self.database_names = names
         self.default_database = names[0] if names else ''
+        prefix = self.find_config('prefixes')
+        self.prefixes = {}
+        if prefix:
+            if isinstance(prefix, str):
+                self.prefixes = json.loads(prefix)
+            elif isinstance(prefix, dict):
+                self.prefixes = prefix
 
     def databases(self):
         """ Returns the list of database/triplestore for this storage """
@@ -274,6 +282,12 @@ class ServerStorage(Storage):
             val = self.options[key]
             if val:
                 opt[key] = val
+        if not isinstance(prefixes, dict):
+            prefixes = {}
+            if '*' in self.prefixes:
+                prefixes.update(self.prefixes['*'])
+            if database in self.prefixes:
+                prefixes.update(self.prefixes[database])
         return self._new_datadoc(opt, prefixes)
 
 
