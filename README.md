@@ -86,3 +86,9 @@ Some examples of graphical user interface from various knowledge graph tools:
  - https://json-ld.org/playground/
  - https://www.wikidata.org/wiki/Wikidata:Query_Builder
  - https://query.wikidata.org/querybuilder/?uselang=en
+
+
+Design and Mockups
+============================
+
+Available in the docs folder
