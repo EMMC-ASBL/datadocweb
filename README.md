@@ -11,6 +11,10 @@ on the Django Project and Apps, for example [How to create an app in
 Django](https://www.geeksforgeeks.org/how-to-create-an-app-in-django/) or in
 the [Django Documentation](https://docs.djangoproject.com/en/5.1/).
 
+In addition, the project uses the following django packages:
+
+- [django-htmx](https://pypi.org/project/django-htmx/)
+
 Installation
 ------------
 
@@ -60,11 +64,6 @@ A Django project is available to test and develop the Django app. Follow the
 steps to run the testing app:
 
 ```sh
-cd tests
-cd django_project
-# create a .env file to set-up database and/or authentication
-python manage.py envfile
-# prepare Django sqlite database
 python manage.py migrate
 # run the server
 python manage.py runserver

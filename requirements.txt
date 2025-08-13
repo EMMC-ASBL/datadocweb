@@ -1,7 +1,7 @@
-rdflib
-requests
+asgiref==3.9.1
+Django==5.2.5
+sqlparse==0.5.3
+tzdata==2025.2
 tripper[datadoc] @ git+https://github.com/EMMC-ASBL/tripper.git@master
-PyBackTrip @ git+https://github.com/EMMC-ASBL/PyBackTrip.git@main
-azure-storage-blob
-Django
-django-environ
+requests==2.32.4
+django-htmx==1.23.2

@@ -1,0 +1,40 @@
+{% extends 'datadoc/base.html' %}
+
+{% block content %}
+<div class="center-screen">
+    <div class="text-center">
+        <div class="container-fluid px-4 py-5 my-5 text-center">
+            <div class="lc-block d-block mx-auto mb-4">
+                <a href="https://github.com/EMMC-ASBL/datadocweb" target="_blank">
+                    <h1
+                        style="background: -webkit-linear-gradient(#eee, #333); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        datadocweb
+                    </h1>
+                </a>
+            </div>
+        </div>
+        <div class="lc-block">
+            <div editable="rich">
+                <h4 class="display-5 fw-bold">Data Documentation Web Tools</h4>
+            </div>
+        </div>
+        <div class="lc-block col-lg-6 mx-auto mb-4">
+            <div editable="rich">
+                <p class="lead">
+                    Web graphical user interface for data documentation using
+                    <a href="https://github.com/EMMC-ASBL/tripper" target="_blank">tripper</a>.
+                </p>
+            </div>
+        </div>
+        <div class="lc-block d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a class="btn btn-outline-secondary btn-lg px-4" href="https://github.com/EMMC-ASBL/datadocweb"
+                role="button" target="_blank">
+                Read more on datadocweb
+            </a>
+            <a class="btn btn-primary btn-lg px-4 gap-3" href="/home"role="button">
+                Open App
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
