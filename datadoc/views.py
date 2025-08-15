@@ -6,10 +6,6 @@ def index(request):
     return render(request, "datadoc/index.html")
 
 
-def hello(request):
-    return HttpResponse("<p>Hello from HTMX!</p>")
-
-
 def home(request):
     return render(request, "datadoc/views/home.html")
 
