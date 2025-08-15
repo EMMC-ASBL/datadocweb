@@ -52,7 +52,9 @@
     }
 
     .button:hover {
+        text-decoration: none;
         background-color: #454141;
+        color: white; 
     }
 </style>
 <main class="container">
@@ -63,10 +65,14 @@
     <div class="section-right">
         <h1>Templates</h1>
         <div class="button-container">
-            <button class="button">Download Excel Template</button>
-            <button class="button">Download JsonLD Template</button>
-            <button class="button">Download YAML Template</button>
+            <a class="button" href="{% url 'download_template' 'template.xlsx' %}" download>Download
+                Excel Template</a>
+            <a class="button" href="{% url 'download_template' 'template.jsonld' %}" download>Download
+                JsonLD Template</a>
+            <a class="button" href="{% url 'download_template' 'template.yaml' %}" download>Download
+                YAML Template</a>
         </div>
     </div>
+
 </main>
 {% endblock %}
