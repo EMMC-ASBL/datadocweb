@@ -1,0 +1,90 @@
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .dropzone {
+            width: 800px;
+            height: 250px;
+            border: 4px groove #aca7a7;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+            color: #888; 
+            background-color: #ffffff;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .dropzone.dragover {
+            border-color: #6d6969;
+            background-color: #9b9999;
+        }
+
+        #upload-result {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <form id="upload-form" hx-post="/upload/" hx-target="#upload-result" hx-swap="innerHTML"
+        enctype="multipart/form-data">
+        <div id="drop-zone" class="dropzone">
+            <i class="fas fa-upload fa-3x" style="margin-bottom: 10px;"></i>
+            <p>Drop files here or click to upload</p>
+            <input type="file" name="files" id="file-input" multiple hidden>
+        </div>
+    </form>
+
+    <div id="upload-result"></div>
+
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadForm = document.getElementById('upload-form');
+
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+
+        const files = e.dataTransfer.files;
+        const dataTransfer = new DataTransfer();
+
+        for (let i = 0; i < files.length; i++) {
+            dataTransfer.items.add(files[i]);
+        }
+
+        fileInput.files = dataTransfer.files;
+
+        // Automatically submit the form
+        uploadForm.submit();
+    });
+</script>
+
+
+</body>

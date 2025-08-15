@@ -1,0 +1,47 @@
+<head>
+    <style>
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h1 {
+            text-align: center;
+            color: grey;
+            margin-bottom: 30px;
+        }
+
+        .button {
+            background-color: #888;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px 0;
+            cursor: pointer;
+            font-size: 16px;
+            width: 300px;
+            border-radius: 12px;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            text-decoration: none;
+            background-color: #454141;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Templates</h1>
+    <div class="button-container">
+        <a class="button" href="{% url 'download_template' 'template.xlsx' %}" download>Download
+            Excel Template</a>
+        <a class="button" href="{% url 'download_template' 'template.jsonld' %}" download>Download
+            JsonLD Template</a>
+        <a class="button" href="{% url 'download_template' 'template.yaml' %}" download>Download
+            YAML Template</a>
+    </div>
+</body>
