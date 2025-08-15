@@ -1,0 +1,39 @@
+/* This centers the entire .center-screen div vertically & horizontally */
+.center-screen {
+  display: flex;
+  justify-content: center;
+  /* centers horizontally */
+  align-items: center;
+  /* centers vertically */
+  height: 70vh;
+  /* full viewport height */
+  text-align: center;
+  /* centers inline text */
+  flex-direction: column;
+  /* stack children vertically */
+  padding: 20px;
+  /* optional padding */
+  box-sizing: border-box;
+}
+
+/* Optional: make sure links inside your content don't break alignment */
+.center-screen a {
+  text-decoration: none;
+}
+
+/* Optional: responsive fix for smaller screens */
+@media (max-width: 576px) {
+  .center-screen {
+    padding: 10px;
+  }
+}
+
+
+.custom-link {
+  cursor: pointer;
+}
+
+.custom-navbar {
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
