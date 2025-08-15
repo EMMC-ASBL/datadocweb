@@ -13,8 +13,8 @@ def home(request):
     return render(request, "datadoc/views/home.html")
 
 
-def editForm(request):
-    return render(request, "datadoc/views/editForm.html")
+def edit_form(request):
+    return render(request, "datadoc/views/edit_form.html")
 
 
 def upload(request):
