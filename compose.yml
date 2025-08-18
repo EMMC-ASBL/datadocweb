@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  graphdb:
+    image: ontotext/graphdb:11.0.1
+    container_name: graphdb
+    ports:
+      - "7200:7200"
+    volumes:
+      - graphdb_data:/opt/graphdb/home
+    environment:
+      - GDB_JAVA_OPTS=-Xms2g -Xmx4g
+    restart: unless-stopped
+volumes:
+  graphdb_data:

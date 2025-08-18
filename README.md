@@ -57,6 +57,21 @@ If your are using Visual Studio Code, press F1 then search and select the
 command "Python: Select Interpreter", and then select, in the dropdown list,
 the virtual environment name which starts with "datadocweb-".
 
+Running local GraphDB
+----------------------
+Run the compose.yml file to get the GraphDB up and running locally at port 7200
+
+New versions:
+```
+docker compose up -d
+```
+Old versions:
+```
+docker-compose -f compose.yml  up -d
+```
+Go to http://localhost:7200/repository and create a repository named 'matchmaker' .
+
+
 Testing the Django app
 ----------------------
 
