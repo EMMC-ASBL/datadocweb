@@ -71,6 +71,7 @@ docker-compose -f compose.yml  up -d
 ```
 Go to http://localhost:7200/repository and create a repository named 'matchmaker' .
 
+Also you need to set a licence for the free version to get this working. 
 
 Testing the Django app
 ----------------------
