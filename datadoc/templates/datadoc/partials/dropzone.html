@@ -34,12 +34,11 @@
         #upload-result {
             text-align: center;
             margin-top: 20px;
+            color: #888;
         }
     </style>
 </head>
-
 <script>
-    // Attach CSRF token to all HTMX requests
     document.body.addEventListener('htmx:configRequest', function (event) {
         const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         event.detail.headers['X-CSRFToken'] = token;
@@ -47,7 +46,6 @@
 </script>
 
 <body>
-
     <form id="upload-form" hx-post="{% url 'upload_file' %}" hx-target="#upload-result" hx-swap="innerHTML"
         enctype="multipart/form-data" method="POST">
         {% csrf_token %}
@@ -64,41 +62,39 @@
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const uploadForm = document.getElementById('upload-form');
+        const uploadResult = document.getElementById('upload-result');
 
-        // Trigger file input when dropzone is clicked
+        uploadForm.addEventListener('submit', () => {
+            uploadResult.innerHTML = "<p>Uploading...</p>";
+        });
+
         dropZone.addEventListener('click', () => {
             fileInput.click();
         });
 
-        // Add "dragover" effect when file is dragged over the dropzone
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
         });
 
-        // Remove "dragover" effect when file is dragged out of the dropzone
         dropZone.addEventListener('dragleave', () => {
             dropZone.classList.remove('dragover');
         });
 
-        // Handle file drop
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
 
-            // Get the dropped files
             const files = e.dataTransfer.files;
             const dataTransfer = new DataTransfer();
 
-            // Add files to the input
             for (let i = 0; i < files.length; i++) {
                 dataTransfer.items.add(files[i]);
             }
 
             fileInput.files = dataTransfer.files;
-
-            // Trigger change event on file input to auto-submit form
             fileInput.dispatchEvent(new Event('change'));
+            uploadForm.submit();
         });
     </script>
 
