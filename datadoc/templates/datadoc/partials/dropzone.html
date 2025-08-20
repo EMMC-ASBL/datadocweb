@@ -46,7 +46,8 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Black with opacity */
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Black with opacity */
             justify-content: center;
             align-items: center;
         }
@@ -89,8 +90,8 @@
 </head>
 
 <body>
-    <form id="upload-form" hx-post="{% url 'upload_file' %}" hx-target="#upload-result" hx-swap="innerHTML"
-        enctype="multipart/form-data" method="POST">
+    <form id="upload-form" hx-post="{% url 'upload_files' %}" hx-target="#upload-result" hx-swap="innerHTML"
+        hx-push-url="false" enctype="multipart/form-data" method="POST">
         {% csrf_token %}
         <div id="drop-zone" class="dropzone">
             <i class="fas fa-upload fa-3x" style="margin-bottom: 10px;"></i>
@@ -99,10 +100,8 @@
         </div>
     </form>
 
-    <!-- Results Section (initially empty) -->
     <div id="upload-result"></div>
 
-    <!-- Success Modal -->
     <div id="successModal" class="modal">
         <div class="modal-content">
             <span class="close" id="closeModal">&times;</span>
@@ -122,12 +121,11 @@
         const closeBtn = document.getElementById('closeBtn');
         const modalMessage = document.getElementById('modal-message');
 
-        // Show uploading message before the form submits
+
         uploadForm.addEventListener('submit', () => {
             uploadResult.innerHTML = "<p>Uploading...</p>";
         });
 
-        // Dropzone events
         dropZone.addEventListener('click', () => {
             fileInput.click();
         });
@@ -155,7 +153,7 @@
             fileInput.files = dataTransfer.files;
             fileInput.dispatchEvent(new Event('change'));
             // Automatically submit the form
-            uploadForm.submit();
+            uploadForm.requestSubmit();
         });
 
         // Function to show the modal with the success message
@@ -166,9 +164,9 @@
 
         // Reset the dropzone and file input when modal is closed
         function resetDropzone() {
-            fileInput.value = "";  // Clear file input
-            dropZone.classList.remove('dragover');  // Reset dropzone style
-            uploadResult.innerHTML = "";  // Clear the upload result section
+            fileInput.value = "";
+            dropZone.classList.remove('dragover');
+            uploadResult.innerHTML = "";
         }
 
         // Close the modal when user clicks the 'X' button or close button
@@ -182,7 +180,7 @@
             resetDropzone();  // Reset the dropzone for next upload
         };
 
-        // Close the modal if user clicks anywhere outside of the modal content
+
         window.onclick = (event) => {
             if (event.target === successModal) {
                 successModal.style.display = "none";
@@ -190,10 +188,8 @@
             }
         };
 
-        // Now integrate with HTMX: trigger success modal when HTMX response is successful
-        document.body.addEventListener('htmx:afterRequest', function(event) {
+        document.body.addEventListener('htmx:afterRequest', function (event) {
             if (event.detail.xhr.status === 200) {
-                // Assuming success is returned from the server
                 showModal("Your file has been uploaded successfully!");
             }
         });
