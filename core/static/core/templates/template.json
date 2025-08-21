@@ -1,0 +1,16 @@
+{
+    "@context": {
+        "sem": "https://w3id.org/emmo/domain/sem/0.1#",
+        "kb": "http://example.com/kb/"
+    },
+    "@id": "kb:image1",
+    "@type": "sem:SEMImage",
+    "creator": {
+        "name": "Sigurd Wenner"
+    },
+    "description": "Back-scattered SEM image of cement, polished with 1 um diamond compound.",
+    "distribution": {
+        "downloadURL": "https://github.com/EMMC-ASBL/tripper/raw/refs/heads/master/tests/input/77600-23-001_5kV_400x_m001.tif",
+        "mediaType": "https://www.iana.org/assignments/media-types/image/tiff"
+    }
+}

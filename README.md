@@ -57,6 +57,22 @@ If your are using Visual Studio Code, press F1 then search and select the
 command "Python: Select Interpreter", and then select, in the dropdown list,
 the virtual environment name which starts with "datadocweb-".
 
+Running local GraphDB
+----------------------
+Run the compose.yml file to get the GraphDB up and running locally at port 7200
+
+New versions:
+```
+docker compose up -d
+```
+Old versions:
+```
+docker-compose -f compose.yml  up -d
+```
+Go to http://localhost:7200/repository and create a repository named 'matchmaker' .
+
+Also you need to set a licence for the free version to get this working. 
+
 Testing the Django app
 ----------------------
 
@@ -75,6 +91,13 @@ In the settings.py file, you can define the triple store options
 (or a remote) file system that store triples in one ttl file,
 or a triple store could be a online server (the comunication 
 with the server will be done by using the library sparqlwrapper).
+
+
+Running tests for the Django app
+----------------------
+```sh
+ python manage.py test datadoc.tests
+ ```
 
 External links
 --------------

@@ -11,10 +11,19 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env(
+    # set a type and a default value for DEBUG
+    DEBUG=(bool, False),
+)
+# reading .env file
+envfile = BASE_DIR / '.env'
+if envfile.exists():
+    env.read_env(envfile)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -56,7 +65,7 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / 'datadoc' / 'templates'],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -81,6 +90,15 @@ DATABASES = {
     }
 }
 
+DATADOCWEB = {
+    'triplestore': {
+        'backend': 'sparqlwrapper',
+        'base_iri': env.str('TRIPLESTORE_BASE_IRI'),
+        'update_iri': env.str('TRIPLESTORE_UPDATE_IRI'),
+        'username': env.str('TRIPLESTORE_USERNAME', None),
+        'password': env.str('TRIPLESTORE_PASSWORD', None)
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
