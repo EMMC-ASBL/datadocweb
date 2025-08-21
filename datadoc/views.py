@@ -1,16 +1,15 @@
+
+""" Implement the views functions """
+
+from pathlib import Path
+import mimetypes
+
+from django.conf import settings
 from django.shortcuts import render
 from django.http import FileResponse, Http404
-import os
-import mimetypes
-from django.conf import settings
-from tripper import Triplestore
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from .utils import SUPPORTED_EXTENSIONS, handle_spreadsheet, handle_json, handle_yaml
 
-# Move this to env file
-select_iri = "http://localhost:7200/repositories/matchmaker"
-update_iri = "http://localhost:7200/repositories/matchmaker/statements"
+from .utils import json_response, get_triplestore, handle_file
 
 
 def index(request):
@@ -38,45 +37,24 @@ def explore(request):
 
 
 def download_template(request, filename):
-    template_path = os.path.join(
-        settings.BASE_DIR, "core/static/core/templates", filename
-    )
-    if os.path.exists(template_path):
+    """ Download a template file """
+    base_dir: Path = settings.BASE_DIR
+    template_path = base_dir / f"core/static/core/templates/{filename}"
+    if template_path.exists():
         mime_type, _ = mimetypes.guess_type(template_path)
-        response = FileResponse(open(template_path, "rb"), content_type=mime_type)
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
+        return FileResponse(open(template_path, "rb"), content_type=mime_type,
+                            as_attachment=True, filename=filename)
     else:
         raise Http404("Template not found")
 
 
-@csrf_exempt  # Remove this if CSRF is configured properly and handled in your template
+# Remove this if CSRF is configured properly and handled in your template
+@csrf_exempt
 def upload_files(request):
+    """ Upload files to the triple store """
+
     if request.method != "POST" or "files" not in request.FILES:
-        return JsonResponse(
-            {"status": "Error", "message": "No file uploaded"}, status=400
-        )
+        return json_response('Error', 'No file uploaded')
 
-    uploaded_file = request.FILES["files"]
-    filename = uploaded_file.name.lower()
-    ts = Triplestore("sparqlwrapper", base_iri=select_iri, update_iri=update_iri)
-
-    try:
-        if filename.endswith(SUPPORTED_EXTENSIONS["spreadsheet"]):
-            return handle_spreadsheet(uploaded_file, ts)
-
-        elif filename.endswith(SUPPORTED_EXTENSIONS["json"]):
-            return handle_json(uploaded_file, ts)
-
-        elif filename.endswith(SUPPORTED_EXTENSIONS["yaml"]):
-            return handle_yaml(uploaded_file, ts)
-
-        else:
-            return JsonResponse(
-                {"status": "Error", "message": "Unsupported file type"}, status=400
-            )
-
-    except Exception as e:
-        return JsonResponse(
-            {"status": "Error", "message": f"Unexpected error: {str(e)}"}, status=500
-        )
+    ts = get_triplestore(settings.DATADOCWEB['triplestore'])
+    return handle_file(request.FILES["files"], ts)
