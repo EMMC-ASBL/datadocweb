@@ -155,7 +155,7 @@
         // Close the modal when user clicks the "Close" button
         closeBtn.onclick = () => {
             successModal.style.display = "none";
-            resetDropzone();
+            resetDropzone();  
         };
 
         window.onclick = (event) => {
@@ -168,6 +168,7 @@
         // Listen for htmx request completion
         document.body.addEventListener('htmx:afterRequest', function (event) {
             const status = event.detail.xhr.status;
+            const response = JSON.parse(event.detail.xhr.responseText);
             if (status === 200) {
                 const message = response.message || "Your file has been uploaded successfully!";
                 showModal(message);
