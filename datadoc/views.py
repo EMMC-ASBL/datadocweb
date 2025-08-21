@@ -3,15 +3,10 @@ from django.http import FileResponse, Http404
 import os
 import mimetypes
 from django.conf import settings
-from tripper.datadoc import TableDoc
 from tripper import Triplestore
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from tripper.datadoc import save_datadoc
-from tripper.datadoc import store
-from tripper.datadoc import told
-import json
-from .utils import process_with_temp_file
+from .utils import SUPPORTED_EXTENSIONS, handle_spreadsheet, handle_json, handle_yaml
 
 # Move this to env file
 select_iri = "http://localhost:7200/repositories/matchmaker"
@@ -57,45 +52,31 @@ def download_template(request, filename):
 
 @csrf_exempt  # Remove this if CSRF is configured properly and handled in your template
 def upload_files(request):
-    if request.method != "POST" or not request.FILES.get("files"):
-        return JsonResponse({"status": "Not Success", "message": "No file uploaded"})
+    if request.method != "POST" or "files" not in request.FILES:
+        return JsonResponse(
+            {"status": "Error", "message": "No file uploaded"}, status=400
+        )
 
     uploaded_file = request.FILES["files"]
     filename = uploaded_file.name.lower()
     ts = Triplestore("sparqlwrapper", base_iri=select_iri, update_iri=update_iri)
 
     try:
-        if filename.endswith((".xls", ".xlsx", ".csv")):
+        if filename.endswith(SUPPORTED_EXTENSIONS["spreadsheet"]):
+            return handle_spreadsheet(uploaded_file, ts)
 
-            def process_csv(path):
-                td = TableDoc.parse_csv(path)
-                td.save(ts)
-                return f"{uploaded_file.name} has populated the Graph"
+        elif filename.endswith(SUPPORTED_EXTENSIONS["json"]):
+            return handle_json(uploaded_file, ts)
 
-            result = process_with_temp_file(uploaded_file, "wb", process_csv)
+        elif filename.endswith(SUPPORTED_EXTENSIONS["yaml"]):
+            return handle_yaml(uploaded_file, ts)
 
-        elif filename.endswith((".json", ".jsonld")):
-            try:
-                dataset = told(json.load(uploaded_file))
-                store(ts, dataset)
-                result = {
-                    "status": "Success",
-                    "message": f"{uploaded_file.name} has populated the Graph",
-                }
-            except Exception as e:
-                result = {"status": "Error", "message": str(e)}
-
-        elif filename.endswith((".yaml", ".yml")):
-
-            def process_yaml(path):
-                save_datadoc(ts, path)
-                return f"{uploaded_file.name} has populated the Graph"
-
-            result = process_with_temp_file(uploaded_file, "wb", process_yaml)
         else:
-            result = {"status": "Not Success", "message": "Invalid file type"}
-
-        return JsonResponse(result)
+            return JsonResponse(
+                {"status": "Error", "message": "Unsupported file type"}, status=400
+            )
 
     except Exception as e:
-        return JsonResponse({"status": "Error", "message": str(e)})
+        return JsonResponse(
+            {"status": "Error", "message": f"Unexpected error: {str(e)}"}, status=500
+        )
