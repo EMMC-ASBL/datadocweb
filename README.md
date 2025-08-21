@@ -73,6 +73,14 @@ Go to http://localhost:7200/repository and create a repository named 'matchmaker
 
 Also you need to set a licence for the free version to get this working. 
 
+Setting up environment variables
+----------------------
+
+Add a .env file to the base directory and if you are using your local graphDB add in the following variables
+
+TRIPLESTORE_BASE_IRI="http://localhost:7200/repositories/matchmaker"
+TRIPLESTORE_UPDATE_IRI="http://localhost:7200/repositories/matchmaker/statements"
+
 Testing the Django app
 ----------------------
 
