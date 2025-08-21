@@ -92,6 +92,13 @@ In the settings.py file, you can define the triple store options
 or a triple store could be a online server (the comunication 
 with the server will be done by using the library sparqlwrapper).
 
+
+Running tests for the Django app
+----------------------
+```sh
+ python manage.py test datadoc.tests
+ ```
+
 External links
 --------------
 
