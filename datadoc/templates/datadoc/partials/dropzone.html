@@ -85,7 +85,7 @@
 
     <div id="upload-result"></div>
 
-    <div id="successModal" class="modal">
+    <div id="modal" class="modal">
         <div class="modal-content" id="modalContent">
         </div>
     </div>
@@ -95,7 +95,7 @@
         const fileInput = document.getElementById('file-input');
         const uploadForm = document.getElementById('upload-form');
         const uploadResult = document.getElementById('upload-result');
-        const successModal = document.getElementById('successModal');
+        const modal = document.getElementById('modal');
         const modalContent = document.getElementById('modalContent');
 
         uploadForm.addEventListener('submit', () => {
@@ -132,14 +132,14 @@
         });
 
         function closeModal() {
-            successModal.style.display = "none";
+            modal.style.display = "none";
             fileInput.value = "";
             dropZone.classList.remove('dragover');
             uploadResult.innerHTML = "";
         }
 
         window.onclick = (event) => {
-            if (event.target === successModal) {
+            if (event.target === modal) {
                 closeModal();
             }
         };
@@ -157,7 +157,7 @@
                 <button class="btn" onclick="closeModal()">Close</button>
             `;
 
-            successModal.style.display = 'flex';
+            modal.style.display = 'flex';
             uploadResult.innerHTML = "";
         });
     </script>

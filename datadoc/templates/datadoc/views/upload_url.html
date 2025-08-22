@@ -121,7 +121,7 @@
 
     <!-- Modal for Success/Error Response -->
     <div id="modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" id="modalContent">
             <div class="modal-header"></div>
             <div class="modal-body"></div>
             <button class="close-btn" onclick="closeModal()">Close</button>
@@ -129,13 +129,10 @@
     </div>
 
     <script>
-        // Enable submit button when the user types a URL
         document.getElementById('url').addEventListener('input', function () {
-            const submitButton = document.getElementById('submit-button');
-            submitButton.disabled = !this.value;
+            document.getElementById('submit-button').disabled = !this.value;
         });
 
-        // Show processing indicator before request
         document.addEventListener('htmx:beforeRequest', function () {
             document.getElementById('processing').style.display = 'block';
         });
@@ -147,36 +144,32 @@
             document.getElementById('processing').style.display = 'none';
         }
 
-        // After request, update modal with success/error response
         document.addEventListener('htmx:afterRequest', function (event) {
             const response = JSON.parse(event.detail.xhr.responseText);
-
-            const modalContent = document.querySelector('.modal-content');
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modalContent');
             const processing = document.getElementById('processing');
 
             processing.style.display = 'none';
 
-            if (response.status === 'Success') {
-                modalContent.innerHTML = `
-                    <div class="modal-header">Success</div>                    
-                    <div class="modal-body">
-                        <p>${response.message}</p>
-                        <p>Status Code: ${response.status_code}</p>
-                    </div>
-                    <button class="close-btn" onclick="closeModal()">Close</button>
-                `;
-            } else {
-                modalContent.innerHTML = `
-                    <div class="modal-header">Error</div>
-                    <div class="modal-body">
-                        <p>${response.message}</p>
-                        <p>Status Code: ${response.status_code}</p>
-                    </div>
-                    <button class="close-btn" onclick="closeModal()">Close</button>
-                `;
-            }
-            document.getElementById('modal').style.display = 'flex';
+            modalContent.innerHTML = `
+                <div class="modal-header">${response.status === 'Success' ? 'Success' : 'Error'}</div>
+                <div class="modal-body">
+                    <p>${response.message}</p>
+                    <p>Status Code: ${response.status_code}</p>
+                </div>
+                <button class="close-btn" onclick="closeModal()">Close</button>
+            `;
+
+            modal.style.display = 'flex';
         });
+
+        window.onclick = function (event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
     </script>
 
 </body>
