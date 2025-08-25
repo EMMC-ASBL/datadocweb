@@ -36,10 +36,13 @@ def get_filetype(filemame: str) -> str:
 
 
 def json_response(status: str, message: str = "", status_code: int = None):
-    """Return a JsonResponse with status code selected based on status string and included in the response body."""
-    resolved_status_code = (
-        status_code if isinstance(status_code, int) else STATUS_CODE.get(status, 501)
-    )
+    """ Return a JsonResponse with status code selected based on status string
+        and included in the response body.
+    """
+    if isinstance(status_code, int):
+        resolved_status_code = status_code
+    else:
+        resolved_status_code = STATUS_CODE.get(status, 501)
     content = {
         "status": status,
         "message": message,
@@ -82,9 +85,8 @@ def write_json(
             store(ts, dataset)
             return json_response("Success", "File has populated the Graph")
         else:
-            return json_response(
-                "Error", f"Failed to fetch file. Status code: {response.status_code}"
-            )
+            msg = f"Failed to fetch file. Status code: {response.status_code}"
+            return json_response("Error", msg)
     except Exception as ex:
         return json_response("Exception", str(ex))
 
@@ -117,8 +119,8 @@ def handle_yaml(uploaded_file: File, ts: Triplestore) -> JsonResponse:
 
 def handle_file(uploaded_file: File, ts: Triplestore) -> JsonResponse:
     """Update a file to the triplestore"""
-    filetype = get_filetype(uploaded_file.name)
     try:
+        filetype = get_filetype(uploaded_file.name)
         if filetype == "spreadsheet":
             return handle_spreadsheet(uploaded_file, ts)
         elif filetype == "json":
@@ -135,13 +137,7 @@ def handle_file(uploaded_file: File, ts: Triplestore) -> JsonResponse:
 def handle_file_url(url: str, ts: Triplestore) -> JsonResponse:
     """Update a file from url to the triplestore"""
     try:
-        ext = Path(url).suffix.lower()
-        filetype = None
-        for key, extensions in SUPPORTED_EXTENSIONS.items():
-            if ext in extensions:
-                filetype = key
-                break
-
+        filetype = get_filetype(url)
         if filetype == "spreadsheet":
             return write_csv(url, ts)
         elif filetype == "json":
@@ -149,6 +145,7 @@ def handle_file_url(url: str, ts: Triplestore) -> JsonResponse:
         elif filetype == "yaml":
             return write_yaml(url, ts)
         else:
+            ext = Path(url).suffix
             return json_response("Error", f'Unsupported file type "{ext}"')
     except Exception as ex:
         return json_response("Exception", str(ex))
