@@ -9,6 +9,6 @@ class UploadPageTemplateTests(TestCase):
         content = response.content.decode()
         self.assertIn('<meta name="csrf-token"', content)
         self.assertIn('id="drop-zone"', content)
-        self.assertIn('id="successModal"', content)
+        self.assertIn('id="modal"', content)
         self.assertIn('hx-post="', content)
         self.assertIn('hx-target="#upload-result"', content)

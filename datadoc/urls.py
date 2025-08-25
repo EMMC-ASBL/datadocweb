@@ -2,7 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # template paths
     path("", views.index, name="index"),
     path("home/", views.explore, name="home"),
     path("explore/", views.explore, name="explore"),
@@ -12,4 +11,5 @@ urlpatterns = [
     # non template paths
     path("download/<str:filename>/", views.download_template, name="download_template"),
     path("upload/file/", views.upload_files, name="upload_files"),
+    path("upload/url/", views.upload_file_url, name="upload_file_url"),
 ]

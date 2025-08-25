@@ -5,3 +5,4 @@ tzdata==2025.2
 tripper[datadoc] @ git+https://github.com/EMMC-ASBL/tripper.git@master
 requests==2.32.4
 django-htmx==1.23.2
+django-environ==0.12.0
