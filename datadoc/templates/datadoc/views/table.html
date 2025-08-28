@@ -1,0 +1,89 @@
+{% extends 'datadoc/base.html' %}
+{% load custom_filters %}
+{% block content %}
+{% include 'datadoc/components/header.html' %}
+
+<main>
+    {% load static %}
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Editable Table</title>
+        <link href="{% static 'bootstrap.min.css' %}" rel="stylesheet">
+        <script src="{% static 'htmx.min.js' %}"></script>
+    </head>
+
+    <body class="p-4">
+
+        <div class="container">
+            <h2 class="mb-4">Custom Table</h2>
+
+            <!-- Add Row and Column Buttons -->
+            <div class="d-flex justify-content-between mb-3">
+                <form hx-post="/add-row/" hx-target="body" hx-swap="outerHTML">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">➕ Add Row</button>
+                </form>
+
+                <form hx-post="/add-column/" hx-target="body" hx-swap="outerHTML">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">➕ Add Column</button>
+                </form>
+            </div>
+
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        {% for heading in headings %}
+                        <th>
+                            <form hx-post="/update-column/{{ heading.0 }}/" hx-trigger="change" hx-target="body"
+                                hx-swap="outerHTML">
+                                {% csrf_token %}
+                                <input name="title" value="{{ heading.1 }}" class="form-control form-control-sm">
+                            </form>
+                            <form hx-post="/delete-column/{{ heading.0 }}/" hx-target="body" hx-swap="outerHTML"
+                                style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+                            </form>
+                        </th>
+                        {% endfor %}
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row_id, row in rows.items %}
+                    <tr>
+                        {% for col_id in column_ids %}
+                        <td>
+                            <input name="content" value="{{ row|get_item:col_id }}" class="form-control form-control-sm"
+                                hx-post="/update-cell/{{ row_id }}/{{ col_id }}/" hx-trigger="keyup changed delay:500ms"
+                                hx-target="body" hx-swap="none" />
+                        </td>
+                        {% endfor %}
+                        <td>
+                            <form hx-post="/delete-row/{{ row_id }}/" hx-target="body" hx-swap="outerHTML"
+                                style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Delete Row</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <script src="{% static 'bootstrap.bundle.min.js' %}"></script>
+        <script>
+            document.body.addEventListener('htmx:configRequest', function (event) {
+                event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+            });
+        </script>
+    </body>
+
+    </html>
+</main>
+{% endblock %}
