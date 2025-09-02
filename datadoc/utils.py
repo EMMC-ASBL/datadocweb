@@ -1,5 +1,6 @@
 """Util module for datadoc and Django"""
 
+import string
 from typing import Callable, Optional
 import os
 from pathlib import Path
@@ -36,8 +37,8 @@ def get_filetype(filemame: str) -> str:
 
 
 def json_response(status: str, message: str = "", status_code: int = None):
-    """ Return a JsonResponse with status code selected based on status string
-        and included in the response body.
+    """Return a JsonResponse with status code selected based on status string
+    and included in the response body.
     """
     if isinstance(status_code, int):
         resolved_status_code = status_code
@@ -174,6 +175,25 @@ def process_with_temp_file(
         return processing_func(temp_file_path, ts)
     except Exception as e:
         return json_response("Exception", str(e))
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+
+def process_csv_form(csv_data: str, ts: Triplestore):
+    temp_file_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            delete=False, mode="w", newline=""
+        ) as temp_file:
+            temp_file.write(csv_data)
+            temp_file_path = temp_file.name
+            temp_file.close()
+        return write_csv(temp_file_path, ts)
+
+    except Exception as e:
+        return json_response("Exception", str(e))
+
     finally:
         if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
