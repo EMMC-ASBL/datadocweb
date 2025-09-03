@@ -2,13 +2,18 @@
 
 from pathlib import Path
 import mimetypes
-
 from django.conf import settings
 from django.shortcuts import render
 from django.http import FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
-from .utils import json_response, get_triplestore, handle_file, handle_file_url
+from .utils import (
+    json_response,
+    get_triplestore,
+    handle_file,
+    handle_file_url,
+    process_csv_form,
+)
 
 
 def index(request):
@@ -69,3 +74,11 @@ def upload_file_url(request):
         url = request.POST.get("url")
         ts = get_triplestore(settings.DATADOCWEB["triplestore"])
         return handle_file_url(url, ts)
+
+
+@csrf_exempt
+def process_csv(request):
+    if request.method == "POST":
+        csv_data = request.POST.get("csv_data")
+        ts = get_triplestore(settings.DATADOCWEB["triplestore"])
+        return process_csv_form(csv_data, ts)
