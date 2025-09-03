@@ -31,23 +31,7 @@
   </div>
 </div>
 
-<div id="modal" class="modal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Modal title</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p id="modal-message"></p>
-        <p id="modal-status"></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'datadoc/components/dialog.html' %}
 
 <script>
   document.getElementById('url').addEventListener('input', function () {
@@ -61,10 +45,7 @@
   document.addEventListener('htmx:afterRequest', function (event) {
     const response = JSON.parse(event.detail.xhr.responseText);
     $('#processing').hide();
-    $('#modal .modal-title').text(status === 200 ? 'Success' : 'Error');
-    $('#modal-message').text(response.message);
-    $('#modal-status').text(`Statu Code: ${response.status_code}`);
-    $('#modal').modal('show');
+    showDialog(response.message, response.status_code);
   });
 </script>
 {% endblock %}
