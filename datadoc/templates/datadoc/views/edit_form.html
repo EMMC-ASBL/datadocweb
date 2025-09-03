@@ -1,243 +1,178 @@
 {% extends 'datadoc/base.html' %}
 {% block content %}
 {% include 'datadoc/components/header.html' %}
+<div class="container mt-4">
+  <h2 class="mb-4">Documentation Form</h2>
+  <div class="btn-toolbar" role="toolbar">
+    <div class="btn-group btn-group-sm me-2" role="group">
+      <button type="button" class="btn btn-secondary" onclick="addColumn()">
+        Add column
+      </button>
+      <button type="button" class="btn btn-secondary" onclick="addRow()">
+        Add row
+      </button>
+    </div>
+    <div class="btn-group btn-group-sm me-2" role="group">
+      <button type="button" class="btn btn-secondary" disabled>Remove column</button>
+      <button type="button" class="btn btn-secondary" disabled>Remove rows</button>
+    </div>
+    <div class="btn-group btn-group-sm" role="group">
+      <button id="btn-submit" type="button" class="btn btn-success" onclick="generateCSV()">
+        Submit
+      </button>
+    </div>
+  </div>
+  <div id="warn-alert" class="alert alert-warning alert-dismissible fade show mt-2" role="alert" style="display:none">
+    <span id="warn-message">Message</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  <table class="table table-bordered mt-2" id="dataTable">
+    <thead>
+      <tr id="tableHeadings"></tr>
+    </thead>
+    <tbody id="tableRows">
+    </tbody>
+  </table>
+</div>
+{% include 'datadoc/components/dialog.html' %}
+<script>
+  let columns = [];
+  let rows = [];
 
-<main>
-    <style>
-        .btn-add,
-        .btn-edit,
-        .btn-submit,
-        .btn-delete {
-            background-color: #858885;
-            color: white;
-            border: none;
-        }
+  function showWarning(message) {
+    $('#warn-message').text(message);
+    $('#warn-alert').show();
+  }
 
-        .btn-add:hover,
-        .btn-edit:hover,
-        .btn-submit:hover,
-        .btn-delete:hover {
-            background-color: #3f4140;
-            color: white;
-            border: none;
-        }
+  function addColumn() {
+    const columnName = "Column " + (columns.length + 1);
+    columns.push(columnName);
+    rows.forEach(row => {
+      row[columnName] = '';
+    });
+    updateTable();
+  }
 
-        .btn-delete {
-            background-color: #dc3545;
-        }
+  function addRow() {
+    if (columns.length === 0) {
+      showWarning("Please add at least one column before adding a row.");
+      return;
+    }
+    const newRow = {};
+    columns.forEach(col => {
+      newRow[col] = '';
+    });
+    rows.push(newRow);
+    updateTable();
+  }
 
-        .btn-delete:hover {
-            background-color: #c82333;
-        }
+  function updateTable() {
+    const tableHeadings = document.getElementById('tableHeadings');
+    tableHeadings.innerHTML = '';
 
-        .btn-edit {
-            background-color: #84ff0094;
-        }
-
-        .btn-edit:hover {
-            background-color: #84ff0094;
-        }
-    </style>
-
-    <body class="p-4">
-        <div class="container">
-            <h2 class="mb-4">Documentation Form</h2>
-            <div class="d-flex ">
-                <button type="button" class="btn btn-add me-2" onclick="addColumn()">➕ Add Column</button>
-                <button type="button" class="btn btn-add" onclick="addRow()">➕ Add Row</button>
-            </div>
-
-            <table class="table table-bordered" id="dataTable">
-                <thead>
-                    <tr id="tableHeadings">
-                    </tr>
-                </thead>
-                <tbody id="tableRows">
-                </tbody>
-            </table>
-
-            <div id="submitButtonContainer" class="justify-content-end" style="display: none;">
-                <button type="button" class="btn btn-submit" onclick="generateCSV()">Submit Documentation</button>
-            </div>
-
+    columns.forEach((col, colIndex) => {
+      const th = document.createElement('th');
+      th.innerHTML = `
+        <div class="d-flex justify-content-between">
+            <input type="text" value="${col}" onchange="renameColumn(${colIndex}, this.value)" />
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteColumn(${colIndex})">
+              <i class="bi bi-trash3"></i>
+            </button>
         </div>
+      `;
+      tableHeadings.appendChild(th);
+    });
 
-        <div id="successModal" class="modal fade" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content" id="modalContent">
-                </div>
-            </div>
-        </div>
+    tableHeadings.appendChild(document.createElement('th'));
 
-        <script>
-            let columns = [];
-            let rows = [];
+    const tableRows = document.getElementById('tableRows');
+    tableRows.innerHTML = '';
 
-            function addColumn() {
-                const columnName = "Column " + (columns.length + 1);
-                columns.push(columnName);
-                rows.forEach(row => {
-                    row[columnName] = '';
-                });
-                updateTable();
-            }
+    rows.forEach((row, rowIndex) => {
+      const tr = document.createElement('tr');
+      columns.forEach(col => {
+        const td = document.createElement('td');
+        td.innerHTML = `<input type="text" value="${row[col]}" onchange="updateRowValue(${rowIndex}, '${col}', this.value)" />`;
+        tr.appendChild(td);
+      });
 
-            function addRow() {
-                if (columns.length === 0) {
-                    alert("Please add at least one column before adding a row.");
-                    return;
-                }
-                const newRow = {};
-                columns.forEach(col => {
-                    newRow[col] = '';
-                });
-                rows.push(newRow);
-                updateTable();
-            }
+      const actionsTd = document.createElement('td');
+      const deleteButton = document.createElement('button');
+      deleteButton.classList.add('btn', 'btn-sm', 'btn-outline-danger');
+      deleteButton.innerHTML = '<i class="bi bi-trash3"></i>';
+      deleteButton.onclick = () => {
+        rows.splice(rowIndex, 1);
+        updateTable();
+      };
+      actionsTd.appendChild(deleteButton);
+      tr.appendChild(actionsTd);
+      tableRows.appendChild(tr);
+    });
+  }
 
-            function updateTable() {
-                const tableHeadings = document.getElementById('tableHeadings');
-                tableHeadings.innerHTML = '';
+  function renameColumn(colIndex, newName) {
+    const oldName = columns[colIndex];
+    columns[colIndex] = newName;
 
-                const submitContainer = document.getElementById('submitButtonContainer');
-                const shouldShowButton = columns.length > 0 && rows.length > 0;
-                submitContainer.style.display = shouldShowButton ? 'flex' : 'none';
+    rows.forEach(row => {
+      row[newName] = row[oldName];
+      delete row[oldName];
+    });
 
-                columns.forEach((col, colIndex) => {
-                    const th = document.createElement('th');
-                    th.innerHTML = `
-                        <div class="d-flex justify-content-between">
-                            <input type="text" value="${col}" onchange="renameColumn(${colIndex}, this.value)" />
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteColumn(${colIndex})">🗑️</button>
-                        </div>
-                    `;
-                    tableHeadings.appendChild(th);
-                });
+    updateTable();
+  }
 
-                tableHeadings.appendChild(document.createElement('th'));
+  function deleteColumn(colIndex) {
+    const colName = columns[colIndex];
+    columns.splice(colIndex, 1);
+    rows.forEach(row => {
+      delete row[colName];
+    });
 
-                const tableRows = document.getElementById('tableRows');
-                tableRows.innerHTML = '';
+    updateTable();
+  }
 
-                rows.forEach((row, rowIndex) => {
-                    const tr = document.createElement('tr');
-                    columns.forEach(col => {
-                        const td = document.createElement('td');
-                        td.innerHTML = `<input type="text" value="${row[col]}" onchange="updateRowValue(${rowIndex}, '${col}', this.value)" />`;
-                        tr.appendChild(td);
-                    });
+  function updateRowValue(rowIndex, colName, newValue) {
+    rows[rowIndex][colName] = newValue;
+  }
 
-                    const actionsTd = document.createElement('td');
-                    const deleteButton = document.createElement('button');
-                    deleteButton.classList.add('btn', 'btn-sm', 'btn-outline-danger');
-                    deleteButton.innerHTML = '🗑️';
-                    deleteButton.onclick = () => {
-                        rows.splice(rowIndex, 1);
-                        updateTable();
-                    };
-                    actionsTd.appendChild(deleteButton);
-                    tr.appendChild(actionsTd);
-                    tableRows.appendChild(tr);
-                });
-            }
+  function validateTable() {
+    for (let i = 0; i < rows.length; i++) {
+      for (let j = 0; j < columns.length; j++) {
+        if (!rows[i][columns[j]]) {
+          showWarning("Please fill in all fields before saving the CSV.");
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 
-            function renameColumn(colIndex, newName) {
-                const oldName = columns[colIndex];
-                columns[colIndex] = newName;
-
-                rows.forEach(row => {
-                    row[newName] = row[oldName];
-                    delete row[oldName];
-                });
-
-                updateTable();
-            }
-
-            function deleteColumn(colIndex) {
-                const colName = columns[colIndex];
-                columns.splice(colIndex, 1);
-                rows.forEach(row => {
-                    delete row[colName];
-                });
-
-                updateTable();
-            }
-
-            function updateRowValue(rowIndex, colName, newValue) {
-                rows[rowIndex][colName] = newValue;
-            }
-
-            function validateTable() {
-                for (let i = 0; i < rows.length; i++) {
-                    for (let j = 0; j < columns.length; j++) {
-                        if (!rows[i][columns[j]]) {
-                            alert("Please fill in all fields before saving the CSV.");
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            }
-
-            function generateCSV() {
-                if (!validateTable()) {
-                    return;
-                }
-                if (columns.length === 0 || rows.length === 0) {
-                    alert("Please add some columns and rows first!");
-                    return;
-                }
-                let csvContent = columns.join(",") + "\n";
-                rows.forEach(row => {
-                    const rowValues = columns.map(col => row[col]);
-                    csvContent += rowValues.join(",") + "\n";
-                });
-                fetch('{% url "process_csv" %}', {
-                    method: 'POST',
-                    headers: {
-                        'HX-Request': 'true',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `csv_data=${encodeURIComponent(csvContent)}`
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        showModal(data);
-                    })
-            }
-
-            function showModal(response) {
-                const modalElement = document.getElementById('successModal');
-                const modalContent = document.getElementById('modalContent');
-
-                modalContent.innerHTML = `
-                    <div class="modal-header">
-                        <h5 class="modal-title">${response.status === 'Success' ? 'Success' : 'Error'}</h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>${response.message}</p>
-                        <p>Status Code: ${response.status_code}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeModal()">Close</button>
-                    </div>
-                `;
-
-                const modalInstance = new bootstrap.Modal(modalElement);
-                modalInstance.show();
-            }
-
-            function closeModal() {
-                columns = [];
-                rows = [];
-                updateTable();
-                document.getElementById('tableHeadings').innerHTML = '';
-                document.getElementById('tableRows').innerHTML = '';
-                document.getElementById('modalContent').innerHTML = '';
-                document.getElementById('submitButtonContainer').style.display = 'none';
-            }
-        </script>
-
-    </body>
-</main>
+  function generateCSV() {
+    if (!validateTable()) {
+      return;
+    }
+    if (columns.length === 0 || rows.length === 0) {
+      showWarning("Please add some columns and rows first!");
+      return;
+    }
+    let csvContent = columns.join(",") + "\n";
+    rows.forEach(row => {
+      const rowValues = columns.map(col => row[col]);
+      csvContent += rowValues.join(",") + "\n";
+    });
+    fetch('{% url "process_csv" %}', {
+      method: 'POST',
+      headers: {
+        'HX-Request': 'true',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `csv_data=${encodeURIComponent(csvContent)}`
+    })
+      .then(response => response.json())
+      .then(data => {
+        showDialog(data.message, data.status_code);
+      })
+  }
+</script>
 {% endblock %}

@@ -1,164 +1,91 @@
-<head>
-    <meta name="csrf-token" content="{{ csrf_token }}">
-    
-    <style>
-        body {
-            font-family: sans-serif;
-            margin: 0;
-            padding: 0;
-        }
+<style>
+  .dropzone {
+    width: 800px;
+    height: 250px;
+    border: 4px groove #aca7a7;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 50px auto;
+    padding: 20px;
+    text-align: center;
+    color: #888;
+    background-color: #ffffff;
+    transition: background-color 0.3s, border-color 0.3s;
+  }
 
-        .dropzone {
-            width: 800px;
-            height: 250px;
-            border: 4px groove #aca7a7;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 50px auto;
-            padding: 20px;
-            text-align: center;
-            color: #888;
-            background-color: #ffffff;
-            transition: background-color 0.3s, border-color 0.3s;
-        }
+  .dropzone.dragover {
+    border-color: #6d6969;
+    background-color: #9b9999;
+  }
 
-        .dropzone.dragover {
-            border-color: #6d6969;
-            background-color: #9b9999;
-        }
+  #upload-result {
+    text-align: center;
+    margin-top: 20px;
+    color: #888;
+  }
+</style>
 
-        #upload-result {
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
-        }
+<form id="upload-form" hx-post="{% url 'upload_files' %}" hx-target="#upload-result" hx-swap="innerHTML"
+  hx-push-url="false" enctype="multipart/form-data" method="POST">
+  {% csrf_token %}
+  <div id="drop-zone" class="dropzone">
+    <h1><i class="bi bi-upload"></i></h1>
+    <p>Drop files here or click to upload</p>
+    <input type="file" name="files" id="file-input" hidden onchange="this.form.requestSubmit()">
+  </div>
+</form>
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-        }
+<div id="upload-result"></div>
 
-        .modal-content {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            width: 400px;
-            text-align: center;
-        }
+{% include 'datadoc/components/dialog.html' %}
 
-        .btn {
-            padding: 10px 20px;
-            background-color: #6e746e;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+<script>
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const uploadForm = document.getElementById('upload-form');
+  const uploadResult = document.getElementById('upload-result');
 
-        .btn:hover {
-            background-color: #444744;
-        }
-    </style>
-</head>
+  uploadForm.addEventListener('submit', () => {
+    uploadResult.innerHTML = "<p>Uploading... Please wait..</p>";
+  });
 
-<body>
-    <form id="upload-form" hx-post="{% url 'upload_files' %}" hx-target="#upload-result" hx-swap="innerHTML"
-        hx-push-url="false" enctype="multipart/form-data" method="POST">
-        {% csrf_token %}
-        <div id="drop-zone" class="dropzone">
-            <i class="fas fa-upload fa-3x" style="margin-bottom: 10px;"></i>
-            <p>Drop files here or click to upload</p>
-            <input type="file" name="files" id="file-input" hidden onchange="this.form.requestSubmit()">
-        </div>
-    </form>
+  dropZone.addEventListener('click', () => {
+    fileInput.click();
+  });
 
-    <div id="upload-result"></div>
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
 
-    <div id="modal" class="modal">
-        <div class="modal-content" id="modalContent">
-        </div>
-    </div>
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
 
-    <script>
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const uploadForm = document.getElementById('upload-form');
-        const uploadResult = document.getElementById('upload-result');
-        const modal = document.getElementById('modal');
-        const modalContent = document.getElementById('modalContent');
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
 
-        uploadForm.addEventListener('submit', () => {
-            uploadResult.innerHTML = "<p>Uploading... Please wait..</p>";
-        });
+    const files = e.dataTransfer.files;
+    const dataTransfer = new DataTransfer();
 
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
-        });
+    for (let i = 0; i < files.length; i++) {
+      dataTransfer.items.add(files[i]);
+    }
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
+    fileInput.files = dataTransfer.files;
+    fileInput.dispatchEvent(new Event('change'));
+    uploadForm.requestSubmit();
+  });
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
+  document.body.addEventListener('htmx:afterRequest', function (event) {
+    const status = event.detail.xhr.status;
+    const response = JSON.parse(event.detail.xhr.responseText);
+    uploadResult.innerHTML = "";
+    showDialog(response.message, response.status_code);
+  });
 
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-
-            const files = e.dataTransfer.files;
-            const dataTransfer = new DataTransfer();
-
-            for (let i = 0; i < files.length; i++) {
-                dataTransfer.items.add(files[i]);
-            }
-
-            fileInput.files = dataTransfer.files;
-            fileInput.dispatchEvent(new Event('change'));
-            uploadForm.requestSubmit();
-        });
-
-        function closeModal() {
-            modal.style.display = "none";
-            fileInput.value = "";
-            dropZone.classList.remove('dragover');
-            uploadResult.innerHTML = "";
-        }
-
-        window.onclick = (event) => {
-            if (event.target === modal) {
-                closeModal();
-            }
-        };
-
-        document.body.addEventListener('htmx:afterRequest', function (event) {
-            const status = event.detail.xhr.status;
-            const response = JSON.parse(event.detail.xhr.responseText);
-
-            modalContent.innerHTML = `
-                <div class="modal-header">${status === 200 ? 'Success' : 'Error'}</div>
-                <div class="modal-body">
-                    <p>${response.message}</p>
-                    <p>Status Code: ${response.status_code}</p>
-                </div>
-                <button class="btn" onclick="closeModal()">Close</button>
-            `;
-
-            modal.style.display = 'flex';
-            uploadResult.innerHTML = "";
-        });
-    </script>
-</body>
+</script>
