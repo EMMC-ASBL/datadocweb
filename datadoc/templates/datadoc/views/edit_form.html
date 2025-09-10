@@ -2,7 +2,7 @@
 {% block content %}
 {% include 'datadoc/components/header.html' %}
 <div class="container mt-4">
-  <h2 class="mb-4">Documentation Form</h2>
+  <h3 class="mb-4">Documentation Form</h3>
   <div class="btn-toolbar" role="toolbar">
     <div class="btn-group btn-group-sm me-2" role="group">
       <button type="button" class="btn btn-secondary" onclick="addColumn()">
@@ -13,11 +13,23 @@
       </button>
     </div>
     <div class="btn-group btn-group-sm me-2" role="group">
-      <button type="button" class="btn btn-secondary" disabled>Remove column</button>
-      <button type="button" class="btn btn-secondary" disabled>Remove rows</button>
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-secondary dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          Remove column
+        </button>
+        <ul class="dropdown-menu" id="remove-column"></ul>
+      </div>
+      <button type="button" class="btn btn-secondary"
+              title="Remove the selected rows" onclick="deleteRows()">
+        Remove rows
+      </button>
     </div>
     <div class="btn-group btn-group-sm" role="group">
-      <button id="btn-submit" type="button" class="btn btn-success" onclick="generateCSV()">
+      <button id="btn-copy" type="button" class="btn btn-light" onclick="copyCSV()">
+        Copy CSV
+      </button>
+      <button id="btn-submit" type="button" class="btn btn-success" onclick="submitCSV()">
         Submit
       </button>
     </div>
@@ -27,17 +39,14 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
   <table class="table table-bordered mt-2" id="dataTable">
-    <thead>
-      <tr id="tableHeadings"></tr>
-    </thead>
-    <tbody id="tableRows">
-    </tbody>
+    <thead></thead>
+    <tbody></tbody>
   </table>
 </div>
 {% include 'datadoc/components/dialog.html' %}
 <script>
-  let columns = [];
-  let rows = [];
+  var columns = [];
+  var rows = [];
 
   function showWarning(message) {
     $('#warn-message').text(message);
@@ -48,7 +57,7 @@
     const columnName = "Column " + (columns.length + 1);
     columns.push(columnName);
     rows.forEach(row => {
-      row[columnName] = '';
+      row.push('');
     });
     updateTable();
   }
@@ -58,67 +67,42 @@
       showWarning("Please add at least one column before adding a row.");
       return;
     }
-    const newRow = {};
-    columns.forEach(col => {
-      newRow[col] = '';
-    });
-    rows.push(newRow);
+    rows.push(columns.map(c => ''));
     updateTable();
   }
 
+  function getTextInput(value, onchange) {
+    return `<input type="text" class="form-control form-control-sm" value="${value}" onchange="${onchange}">`;
+  }
+
   function updateTable() {
-    const tableHeadings = document.getElementById('tableHeadings');
-    tableHeadings.innerHTML = '';
-
+    let header = '<tr><th></th>';
+    $('#remove-column').empty();
     columns.forEach((col, colIndex) => {
-      const th = document.createElement('th');
-      th.innerHTML = `
-        <div class="d-flex justify-content-between">
-            <input type="text" value="${col}" onchange="renameColumn(${colIndex}, this.value)" />
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteColumn(${colIndex})">
-              <i class="bi bi-trash3"></i>
-            </button>
-        </div>
-      `;
-      tableHeadings.appendChild(th);
+      let onchange = `renameColumn(${colIndex}, this.value)`;
+      header += `<th>${getTextInput(col, onchange)}</th>`;
+      let item = `<li><a class="dropdown-item" href="javascript:deleteColumn(${colIndex})">${col}</a></li>`;
+      $('#remove-column').append(item);
     });
+    $('#dataTable thead').empty().append(header);
 
-    tableHeadings.appendChild(document.createElement('th'));
-
-    const tableRows = document.getElementById('tableRows');
-    tableRows.innerHTML = '';
-
+    let cells = '';
     rows.forEach((row, rowIndex) => {
-      const tr = document.createElement('tr');
-      columns.forEach(col => {
-        const td = document.createElement('td');
-        td.innerHTML = `<input type="text" value="${row[col]}" onchange="updateRowValue(${rowIndex}, '${col}', this.value)" />`;
-        tr.appendChild(td);
+      cells += '<tr><td><div class="form-check">';
+      cells += `<input class="form-check-input" type="checkbox" id="row-${rowIndex}">`;
+      cells += '</div></td>';
+      columns.forEach((col, colIndex) => {
+        let onchange = `updateRowValue(${rowIndex}, ${colIndex}, this.value)`;
+        cells += `<td>${getTextInput(row[colIndex], onchange)}</td>`;
       });
-
-      const actionsTd = document.createElement('td');
-      const deleteButton = document.createElement('button');
-      deleteButton.classList.add('btn', 'btn-sm', 'btn-outline-danger');
-      deleteButton.innerHTML = '<i class="bi bi-trash3"></i>';
-      deleteButton.onclick = () => {
-        rows.splice(rowIndex, 1);
-        updateTable();
-      };
-      actionsTd.appendChild(deleteButton);
-      tr.appendChild(actionsTd);
-      tableRows.appendChild(tr);
+      cells += '</tr>';
     });
+    $('#dataTable tbody').empty().append(cells);
   }
 
   function renameColumn(colIndex, newName) {
     const oldName = columns[colIndex];
     columns[colIndex] = newName;
-
-    rows.forEach(row => {
-      row[newName] = row[oldName];
-      delete row[oldName];
-    });
-
     updateTable();
   }
 
@@ -126,53 +110,82 @@
     const colName = columns[colIndex];
     columns.splice(colIndex, 1);
     rows.forEach(row => {
-      delete row[colName];
+      row.splice(colIndex, 1);
     });
-
     updateTable();
   }
 
-  function updateRowValue(rowIndex, colName, newValue) {
-    rows[rowIndex][colName] = newValue;
+  function deleteRows() {
+    let remove = $('input[id^="row-"]:checked').map((i, inp) => {
+      return Number(inp.id.substring(4));
+    }).toArray();
+    var newrows = [];
+    rows.forEach((row, i) => {
+      if (!remove.includes(i)) {
+        newrows.push(row);
+      }
+    });
+    rows = newrows;
+    updateTable();
+  }
+
+  function updateRowValue(rowIndex, colIndex, newValue) {
+    rows[rowIndex][colIndex] = newValue;
   }
 
   function validateTable() {
-    for (let i = 0; i < rows.length; i++) {
-      for (let j = 0; j < columns.length; j++) {
-        if (!rows[i][columns[j]]) {
-          showWarning("Please fill in all fields before saving the CSV.");
-          return false;
+    let valid = true;
+    if (columns.length === 0 || rows.length === 0) {
+      showWarning("Please add some columns and rows first!");
+      valid = false;
+    } else {
+      for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < columns.length; j++) {
+          if (!rows[i][j]) {
+            showWarning("Please fill in all fields before saving the CSV.");
+            valid = false;
+            break;
+          }
         }
       }
     }
-    return true;
+    if (valid) {
+      $('#warn-alert').hide();
+    }
+    return valid;
   }
 
   function generateCSV() {
-    if (!validateTable()) {
-      return;
+    let csvContent = '';
+    if (validateTable()) {
+      csvContent = columns.join(",") + "\n";
+      rows.forEach(row => {
+        csvContent += row.join(",") + "\n";
+      });    
     }
-    if (columns.length === 0 || rows.length === 0) {
-      showWarning("Please add some columns and rows first!");
-      return;
-    }
-    let csvContent = columns.join(",") + "\n";
-    rows.forEach(row => {
-      const rowValues = columns.map(col => row[col]);
-      csvContent += rowValues.join(",") + "\n";
-    });
-    fetch('{% url "process_csv" %}', {
-      method: 'POST',
-      headers: {
-        'HX-Request': 'true',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: `csv_data=${encodeURIComponent(csvContent)}`
-    })
+    return csvContent;
+  }
+
+  function copyCSV() {
+    navigator.clipboard.writeText(generateCSV());
+  }
+
+  function submitCSV() {
+    let csvContent = generateCSV();
+    if (csvContent) {
+      fetch('{% url "process_csv" %}', {
+        method: 'POST',
+        headers: {
+          'HX-Request': 'true',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `csv_data=${encodeURIComponent(csvContent)}`
+      })
       .then(response => response.json())
       .then(data => {
         showDialog(data.message, data.status_code);
-      })
+      });
+    }
   }
 </script>
 {% endblock %}
