@@ -25,7 +25,15 @@ def home(request):
 
 
 def edit_form(request):
-    return render(request, "datadoc/views/edit_form.html")
+    prefix = {
+        'xyz': 'http://hello-world.com',
+        'abc': 'http://hello-world-2.com',
+    }
+    prefix_list = []
+    for key, val in prefix.items():
+        prefix_list.append({'prefix': key, 'iri': val})
+    ctx = dict(prefix_list=prefix_list)
+    return render(request, "datadoc/views/edit_form.html", context=ctx)
 
 
 def upload_file(request):
@@ -79,6 +87,17 @@ def upload_file_url(request):
 @csrf_exempt
 def process_csv(request):
     if request.method == "POST":
-        csv_data = request.POST.get("csv_data")
+
         ts = get_triplestore(settings.DATADOCWEB["triplestore"])
+
+        csv_prefix = request.POST.get("csv_prefix")
+        if csv_prefix:
+            for line in csv_prefix.splitlines():
+                kv = line.split(':', 1)
+                if len(kv) == 2:
+                    pr, ns = kv
+                    if pr and ns:
+                        ts.bind(pr, ns)
+
+        csv_data = request.POST.get("csv_data")
         return process_csv_form(csv_data, ts)

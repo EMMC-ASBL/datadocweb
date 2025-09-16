@@ -92,6 +92,9 @@
   var columns = [];
   var rows = [];
   var prefix = [];
+  {% for item in prefix_list %}
+  prefix.push({prefix: '{{ item.prefix }}', iri: '{{ item.iri }}'});
+  {% endfor %}
 
   function showWarning(message) {
     $('#warn-message').text(message);
@@ -218,13 +221,18 @@
   function submitCSV() {
     let csvContent = generateCSV();
     if (csvContent) {
+      let csv_prefix = "";
+      prefix.forEach(p => {
+        csv_prefix += `${p.prefix}:${p.iri}\n`;
+      });
+      console.log(csv_prefix);
       fetch('{% url "process_csv" %}', {
         method: 'POST',
         headers: {
           'HX-Request': 'true',
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `csv_data=${encodeURIComponent(csvContent)}`
+        body: `csv_data=${encodeURIComponent(csvContent)}&csv_prefix=${encodeURIComponent(csv_prefix)}`
       })
         .then(response => response.json())
         .then(data => {
