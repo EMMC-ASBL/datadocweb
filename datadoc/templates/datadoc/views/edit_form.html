@@ -26,6 +26,23 @@
       </button>
     </div>
     <div class="btn-group btn-group-sm" role="group">
+      <div class="btn-group btn-group-sm" role="group">
+        <button id="btn-prefix" type="button"
+                class="btn btn-secondary dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          Prefix
+        </button>
+        <ul class="dropdown-menu" id="prefix">
+          <li><h6 class="dropdown-header">New prefix</h6></li>
+          <li><a class="dropdown-item" href="javascript:onAddPrefix()">Add</a></li>
+          <li><h6 class="dropdown-header">Remove prefix</h6></li>
+          {% for item in prefix_list %}
+          <li><a class="dropdown-item" href="javascript:onRemovePrefix('{{ item.prefix }}')">{{ item.prefix }}: {{ item.iri }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="btn-group btn-group-sm" role="group">
       <button id="btn-copy" type="button" class="btn btn-light" onclick="copyCSV()">
         Copy CSV
       </button>
@@ -38,6 +55,35 @@
     <span id="warn-message">Message</span>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
+  <div class="row" id="row-prefix" style="display: none;">
+    <hr class="mt-3">
+    <form class="row row-cols-lg-auto align-items-center">
+      <div class="col-12">
+        <label class="visually-hidden" for="inp-prefix">Prefix</label>
+        <div class="input-group input-group-sm">
+          <div class="input-group-text">Prefix</div>
+          <input type="text" class="form-control" id="inp-prefix" placeholder="Enter prefix">
+        </div>
+      </div>
+      <div class="col-12" style="padding-left: 0px;">
+        <label class="visually-hidden" for="inp-iri">IRI</label>
+        <div class="input-group input-group-sm">
+          <div class="input-group-text">IRI</div>
+          <input type="text" class="form-control" id="inp-iri" placeholder="Enter IRI">
+        </div>
+      </div>
+      <div class="col-12" style="padding-left: 0px;">
+        <button type="button" class="btn btn-light btn-sm" onclick="hidePrefix()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="addPrefix()">Add prefix</button>
+      </div>
+      <div id="prefix-alert" class="col-12" style="padding-left: 0px;">
+        <div id="prefix-alert-text" class="alert alert-danger" role="alert" style="padding-top: 4px; padding-bottom: 4px; margin-bottom: 0px" >
+          
+        </div>
+      </div>
+    </form>
+    <hr class="mt-3">
+  </div>
   <table class="table table-bordered mt-2" id="dataTable">
     <thead></thead>
     <tbody></tbody>
@@ -47,6 +93,7 @@
 <script>
   var columns = [];
   var rows = [];
+  var prefix = [];
 
   function showWarning(message) {
     $('#warn-message').text(message);
@@ -187,5 +234,63 @@
       });
     }
   }
+
+  function onAddPrefix() {
+    $('#inp-prefix').val('');
+    $('#inp-iri').val('');
+    $('#prefix-alert').hide();
+    $('#row-prefix').show();
+  }
+
+  function addPrefix() {
+    let error = '';
+    let iri = $('#inp-iri').val();
+    if (!iri) {
+      error = 'Prefix IRI is empty!';
+    }
+    let name = $('#inp-prefix').val();
+    if (!name) {
+      error = 'Prefix name is empty!'
+    } else {
+      let found = prefix.find(x => x.prefix == name);
+      if (found) {
+        error = `Prefix "${name}" already exists!`;
+      }
+    }
+    if (error) {
+      $('#prefix-alert-text').text(error);
+      $('#prefix-alert').show();
+    } else {
+      $('#prefix-alert').hide();
+      let item = {
+        prefix: $('#inp-prefix').val(),
+        iri: $('#inp-iri').val()
+      };
+      prefix.push(item);
+      let href = `javascript:onRemovePrefix('${item.prefix}')`;
+      let label = `${item.prefix}: ${item.iri}`;
+      $('#prefix').append(`<li><a class="dropdown-item" href="${href}">${label}</a></li>`);
+      $('#row-prefix').hide();
+    }
+  }
+
+  function hidePrefix() {
+    $('#row-prefix').hide();
+  }
+
+  function onRemovePrefix(name) {
+    prefix = prefix.filter(x => x.prefix != name);
+    let menu = '';
+    menu += '<li><h6 class="dropdown-header">New prefix</h6></li>';
+    menu += '<li><a class="dropdown-item" href="javascript:onAddPrefix()">Add</a></li>';
+    menu += '<li><h6 class="dropdown-header">Remove prefix</h6></li>';
+    prefix.forEach(item => {
+      let href = `javascript:onRemovePrefix('${item.prefix}')`;
+      let label = `${item.prefix}: ${item.iri}`;
+      menu += `<li><a class="dropdown-item" href="${href}">${label}</a></li>`;
+    });
+    $('#prefix').empty().append(menu);
+  }
+
 </script>
 {% endblock %}
