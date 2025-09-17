@@ -89,7 +89,7 @@
 </div>
 {% include 'datadoc/components/dialog.html' %}
 <script>
-  var columns = ['@id', '@type'];  // Ensure @id and @type are always the initial columns
+  var columns = ['@id', '@type'];  // Ensure @id and @type are always present
   var rows = [];
   var prefix = [];
   
@@ -99,8 +99,7 @@
 
   // Tooltip for @id and @type
   function showTooltip(col) {
-    let tooltipText = col === '@id' ? 'This is the identifier column.' : 'This is the type column.';
-    return tooltipText;
+    return col === '@id' ? 'This is the identifier column.' : 'This is the type column.';
   }
 
   function showWarning(message) {
@@ -108,8 +107,12 @@
     $('#warn-alert').show();
   }
 
+  // Generate unique IDs for new rows
+  function generateUniqueId() {
+    return 'id-' + Math.floor(Math.random() * 1000000);
+  }
+
   function addColumn() {
-    // Add new column only if it's not @id or @type
     const columnName = "Column " + (columns.length + 1);
     columns.push(columnName);
     rows.forEach(row => {
@@ -123,62 +126,62 @@
       showWarning("Please add at least one column before adding a row.");
       return;
     }
-    rows.push(columns.map(c => ''));
+    let newRow = columns.map(col => {
+      if (col === '@id') return generateUniqueId();
+      if (col === '@type') return 'SomeType';  // Default value for @type - change if needed
+      return '';
+    });
+    rows.push(newRow);
     updateTable();
   }
 
-  function getTextInput(value, onchange) {
-    return `<input type="text" class="form-control form-control-sm" value="${value}" onchange="${onchange}">`;
+  function getTextInput(value, onchange, readonly = false) {
+    return `<input type="text" class="form-control form-control-sm" value="${value}" onchange="${onchange}" ${readonly ? 'readonly' : ''}>`;
   }
 
   function updateTable() {
     let header = '<tr><th></th>';
     $('#remove-column').empty();
 
-    // Loop through columns to update headers
     columns.forEach((col, colIndex) => {
       let tooltip = (col === '@id' || col === '@type') ? `data-bs-toggle="tooltip" title="${showTooltip(col)}"` : '';
-      let onchange = col !== '@id' && col !== '@type' ? `renameColumn(${colIndex}, this.value)` : '';
+      let onchange = (col !== '@id' && col !== '@type') ? `renameColumn(${colIndex}, this.value)` : '';
+      let readonly = (col === '@id' || col === '@type');
+      header += `<th ${tooltip}>${getTextInput(col, onchange, readonly)}</th>`;
 
-      header += `<th ${tooltip}>${getTextInput(col, onchange)}</th>`;
-      let item = col !== '@id' && col !== '@type' ? `<li><a class="dropdown-item" href="javascript:deleteColumn(${colIndex})">${col}</a></li>` : '';
-      $('#remove-column').append(item);
+      if (!readonly) {
+        $('#remove-column').append(`<li><a class="dropdown-item" href="javascript:deleteColumn(${colIndex})">${col}</a></li>`);
+      }
     });
+    header += '</tr>';
+    $('#dataTable thead').html(header);
 
-    $('#dataTable thead').empty().append(header);
-
-    let cells = '';
+    let bodyHtml = '';
     rows.forEach((row, rowIndex) => {
-      cells += '<tr><td><div class="form-check">';
-      cells += `<input class="form-check-input" type="checkbox" id="row-${rowIndex}">`;
-      cells += '</div></td>';
+      bodyHtml += `<tr><td><input class="form-check-input" type="checkbox" id="row-${rowIndex}"></td>`;
       columns.forEach((col, colIndex) => {
-        let onchange = col !== '@id' && col !== '@type' ? `updateRowValue(${rowIndex}, ${colIndex}, this.value)` : '';
-        cells += `<td>${getTextInput(row[colIndex], onchange)}</td>`;
+        bodyHtml += `<td><input type="text" class="form-control form-control-sm" value="${row[colIndex]}" onchange="updateRowValue(${rowIndex}, ${colIndex}, this.value)"></td>`;
       });
-      cells += '</tr>';
+      bodyHtml += '</tr>';
     });
-    $('#dataTable tbody').empty().append(cells);
+    $('#dataTable tbody').html(bodyHtml);
 
-    // Re-initialize tooltips
+    // Re-init Bootstrap tooltips
     $('[data-bs-toggle="tooltip"]').tooltip();
   }
 
   function renameColumn(colIndex, newName) {
-    const oldName = columns[colIndex];
     columns[colIndex] = newName;
     updateTable();
   }
 
   function deleteColumn(colIndex) {
-    // if (columns[colIndex] === '@id' || columns[colIndex] === '@type') {
-    //   showWarning("Cannot delete the '@id' or '@type' columns.");
-    //   return;
-    // }
+    if (columns[colIndex] === '@id' || columns[colIndex] === '@type') {
+      showWarning("Cannot delete the '@id' or '@type' columns.");
+      return;
+    }
     columns.splice(colIndex, 1);
-    rows.forEach(row => {
-      row.splice(colIndex, 1);
-    });
+    rows.forEach(row => row.splice(colIndex, 1));
     updateTable();
   }
 
@@ -186,13 +189,7 @@
     let remove = $('input[id^="row-"]:checked').map((i, inp) => {
       return Number(inp.id.substring(4));
     }).toArray();
-    var newrows = [];
-    rows.forEach((row, i) => {
-      if (!remove.includes(i)) {
-        newrows.push(row);
-      }
-    });
-    rows = newrows;
+    rows = rows.filter((_, i) => !remove.includes(i));
     updateTable();
   }
 
@@ -262,7 +259,6 @@
             updateTable();
             $('#warn-alert').hide();
           }
-
         });
     }
   }
@@ -323,6 +319,9 @@
     });
     $('#prefix').empty().append(menu);
   }
+
+  // Initial render
+  updateTable();
 
 </script>
 {% endblock %}
