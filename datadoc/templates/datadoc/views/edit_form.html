@@ -90,7 +90,7 @@
 {% include 'datadoc/components/dialog.html' %}
 <script>
   var columns = ['@id', '@type'];  // Ensure @id and @type are always present
-  var rows = [];
+  var rows = [['', '']];  // One row with empty '@id' and '@type' on page load
   var prefix = [];
   
   {% for item in prefix_list %}
@@ -107,7 +107,7 @@
     $('#warn-alert').show();
   }
 
-  // Generate unique IDs for new rows
+  // Generate unique IDs for new rows (not used for default now)
   function generateUniqueId() {
     return 'id-' + Math.floor(Math.random() * 1000000);
   }
@@ -127,9 +127,7 @@
       return;
     }
     let newRow = columns.map(col => {
-      if (col === '@id') return generateUniqueId();
-      if (col === '@type') return 'SomeType';  // Default value for @type - change if needed
-      return '';
+      return ''; // No default values for any column including @id and @type
     });
     rows.push(newRow);
     updateTable();
@@ -255,7 +253,7 @@
           showDialog(data.message, data.status_code);
           if (Number(data.status_code) === 200) {
             columns = ['@id', '@type']; // Reset columns to include @id and @type
-            rows = [];
+            rows = [['', '']]; // Reset to one empty row with empty values
             updateTable();
             $('#warn-alert').hide();
           }
@@ -324,4 +322,5 @@
   updateTable();
 
 </script>
+
 {% endblock %}
