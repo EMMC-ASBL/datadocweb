@@ -89,12 +89,19 @@
 </div>
 {% include 'datadoc/components/dialog.html' %}
 <script>
-  var columns = [];
+  var columns = ['@id', '@type'];  // Ensure @id and @type are always the initial columns
   var rows = [];
   var prefix = [];
+  
   {% for item in prefix_list %}
   prefix.push({prefix: '{{ item.prefix }}', iri: '{{ item.iri }}'});
   {% endfor %}
+
+  // Tooltip for @id and @type
+  function showTooltip(col) {
+    let tooltipText = col === '@id' ? 'This is the identifier column.' : 'This is the type column.';
+    return tooltipText;
+  }
 
   function showWarning(message) {
     $('#warn-message').text(message);
@@ -102,6 +109,7 @@
   }
 
   function addColumn() {
+    // Add new column only if it's not @id or @type
     const columnName = "Column " + (columns.length + 1);
     columns.push(columnName);
     rows.forEach(row => {
@@ -126,12 +134,17 @@
   function updateTable() {
     let header = '<tr><th></th>';
     $('#remove-column').empty();
+
+    // Loop through columns to update headers
     columns.forEach((col, colIndex) => {
-      let onchange = `renameColumn(${colIndex}, this.value)`;
-      header += `<th>${getTextInput(col, onchange)}</th>`;
-      let item = `<li><a class="dropdown-item" href="javascript:deleteColumn(${colIndex})">${col}</a></li>`;
+      let tooltip = (col === '@id' || col === '@type') ? `data-bs-toggle="tooltip" title="${showTooltip(col)}"` : '';
+      let onchange = col !== '@id' && col !== '@type' ? `renameColumn(${colIndex}, this.value)` : '';
+
+      header += `<th ${tooltip}>${getTextInput(col, onchange)}</th>`;
+      let item = col !== '@id' && col !== '@type' ? `<li><a class="dropdown-item" href="javascript:deleteColumn(${colIndex})">${col}</a></li>` : '';
       $('#remove-column').append(item);
     });
+
     $('#dataTable thead').empty().append(header);
 
     let cells = '';
@@ -140,12 +153,15 @@
       cells += `<input class="form-check-input" type="checkbox" id="row-${rowIndex}">`;
       cells += '</div></td>';
       columns.forEach((col, colIndex) => {
-        let onchange = `updateRowValue(${rowIndex}, ${colIndex}, this.value)`;
+        let onchange = col !== '@id' && col !== '@type' ? `updateRowValue(${rowIndex}, ${colIndex}, this.value)` : '';
         cells += `<td>${getTextInput(row[colIndex], onchange)}</td>`;
       });
       cells += '</tr>';
     });
     $('#dataTable tbody').empty().append(cells);
+
+    // Re-initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
   }
 
   function renameColumn(colIndex, newName) {
@@ -155,7 +171,10 @@
   }
 
   function deleteColumn(colIndex) {
-    const colName = columns[colIndex];
+    // if (columns[colIndex] === '@id' || columns[colIndex] === '@type') {
+    //   showWarning("Cannot delete the '@id' or '@type' columns.");
+    //   return;
+    // }
     columns.splice(colIndex, 1);
     rows.forEach(row => {
       row.splice(colIndex, 1);
@@ -238,7 +257,7 @@
         .then(data => {
           showDialog(data.message, data.status_code);
           if (Number(data.status_code) === 200) {
-            columns = [];
+            columns = ['@id', '@type']; // Reset columns to include @id and @type
             rows = [];
             updateTable();
             $('#warn-alert').hide();
