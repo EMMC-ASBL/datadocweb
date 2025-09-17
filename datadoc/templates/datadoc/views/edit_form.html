@@ -25,17 +25,21 @@
     </div>
     <div class="btn-group btn-group-sm" role="group">
       <div class="btn-group btn-group-sm" role="group">
-        <button id="btn-prefix" type="button"
-                class="btn btn-secondary dropdown-toggle"
-                data-bs-toggle="dropdown" aria-expanded="false">
+        <button id="btn-prefix" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown"
+          aria-expanded="false">
           Prefix
         </button>
         <ul class="dropdown-menu" id="prefix">
-          <li><h6 class="dropdown-header">New prefix</h6></li>
+          <li>
+            <h6 class="dropdown-header">New prefix</h6>
+          </li>
           <li><a class="dropdown-item" href="javascript:onAddPrefix()">Add</a></li>
-          <li><h6 class="dropdown-header">Remove prefix</h6></li>
+          <li>
+            <h6 class="dropdown-header">Remove prefix</h6>
+          </li>
           {% for item in prefix_list %}
-          <li><a class="dropdown-item" href="javascript:onRemovePrefix('{{ item.prefix }}')">{{ item.prefix }}: {{ item.iri }}</a></li>
+          <li><a class="dropdown-item" href="javascript:onRemovePrefix('{{ item.prefix }}')">{{ item.prefix }}: {{
+              item.iri }}</a></li>
           {% endfor %}
         </ul>
       </div>
@@ -75,8 +79,9 @@
         <button type="button" class="btn btn-primary btn-sm" onclick="addPrefix()">Add prefix</button>
       </div>
       <div id="prefix-alert" class="col-12" style="padding-left: 0px;">
-        <div id="prefix-alert-text" class="alert alert-danger" role="alert" style="padding-top: 4px; padding-bottom: 4px; margin-bottom: 0px" >
-          
+        <div id="prefix-alert-text" class="alert alert-danger" role="alert"
+          style="padding-top: 4px; padding-bottom: 4px; margin-bottom: 0px">
+
         </div>
       </div>
     </form>
@@ -88,18 +93,25 @@
   </table>
 </div>
 {% include 'datadoc/components/dialog.html' %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-  var columns = ['@id', '@type'];  // Ensure @id and @type are always present
-  var rows = [['', '']];  // One row with empty '@id' and '@type' on page load
+  var columns = [];
+  var rows = [];
   var prefix = [];
-  
+
   {% for item in prefix_list %}
-  prefix.push({prefix: '{{ item.prefix }}', iri: '{{ item.iri }}'});
+  prefix.push({ prefix: '{{ item.prefix }}', iri: '{{ item.iri }}' });
   {% endfor %}
+
+  $(document).ready(function () {
+    columns = ['@id', '@type'];
+    rows = [['', '']];
+    updateTable();
+  });
 
   // Tooltip for @id and @type
   function showTooltip(col) {
-    return col === '@id' ? 'This is the identifier column.' : 'This is the type column.';
+    return col === '@id' ? 'The unique identifier of a resource.' : 'Ontology concept this resource belongs to.';
   }
 
   function showWarning(message) {
@@ -107,7 +119,7 @@
     $('#warn-alert').show();
   }
 
-  // Generate unique IDs for new rows (not used for default now)
+  // Generate unique IDs for new rows (not used by default)
   function generateUniqueId() {
     return 'id-' + Math.floor(Math.random() * 1000000);
   }
@@ -126,9 +138,7 @@
       showWarning("Please add at least one column before adding a row.");
       return;
     }
-    let newRow = columns.map(col => {
-      return ''; // No default values for any column including @id and @type
-    });
+    let newRow = columns.map(col => '');
     rows.push(newRow);
     updateTable();
   }
@@ -165,7 +175,11 @@
     $('#dataTable tbody').html(bodyHtml);
 
     // Re-init Bootstrap tooltips
-    $('[data-bs-toggle="tooltip"]').tooltip();
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+      new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
   }
 
   function renameColumn(colIndex, newName) {
@@ -184,9 +198,7 @@
   }
 
   function deleteRows() {
-    let remove = $('input[id^="row-"]:checked').map((i, inp) => {
-      return Number(inp.id.substring(4));
-    }).toArray();
+    let remove = $('input[id^="row-"]:checked').map((i, inp) => Number(inp.id.substring(4))).toArray();
     rows = rows.filter((_, i) => !remove.includes(i));
     updateTable();
   }
@@ -252,8 +264,8 @@
         .then(data => {
           showDialog(data.message, data.status_code);
           if (Number(data.status_code) === 200) {
-            columns = ['@id', '@type']; // Reset columns to include @id and @type
-            rows = [['', '']]; // Reset to one empty row with empty values
+            columns = ['@id', '@type']; // Reset columns to default
+            rows = [['', '']]; // Reset to one empty row
             updateTable();
             $('#warn-alert').hide();
           }
@@ -318,9 +330,9 @@
     $('#prefix').empty().append(menu);
   }
 
-  // Initial render
+  // Initial render - guaranteed default view on page load
   updateTable();
-
 </script>
+
 
 {% endblock %}
