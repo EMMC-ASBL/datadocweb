@@ -1,6 +1,5 @@
 """Util module for datadoc and Django"""
 
-import string
 from typing import Callable, Optional
 import os
 from pathlib import Path

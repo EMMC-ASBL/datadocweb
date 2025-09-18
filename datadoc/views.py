@@ -36,13 +36,15 @@ def edit_form(request):
     ctx = dict(prefix_list=prefix_list)
     return render(request, "datadoc/views/edit_form.html", context=ctx)
 
+
 def get_prefixes_view(request):
     """
     Django view to return the list of prefixes from Tripper as JSON.
     """
-    prefixes_dict = get_prefixes() 
+    prefixes_dict = get_prefixes()
     prefixes = [{'prefix': k, 'iri': v} for k, v in prefixes_dict.items()]
     return JsonResponse({'prefixes': prefixes})
+
 
 def upload_file(request):
     return render(request, "datadoc/views/upload_file.html")
@@ -90,6 +92,7 @@ def upload_file_url(request):
         url = request.POST.get("url")
         ts = get_triplestore(settings.DATADOCWEB["triplestore"])
         return handle_file_url(url, ts)
+
 
 @csrf_exempt
 def process_csv(request):
