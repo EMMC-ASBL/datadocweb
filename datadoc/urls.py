@@ -13,4 +13,5 @@ urlpatterns = [
     path("upload/file/", views.upload_files, name="upload_files"),
     path("upload/url/", views.upload_file_url, name="upload_file_url"),
     path("process-csv/", views.process_csv, name="process_csv"),
+    path('get-prefixes/', views.get_prefixes_view, name='get_prefixes'),
 ]
