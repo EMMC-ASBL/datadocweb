@@ -6,7 +6,8 @@ from django.conf import settings
 from django.shortcuts import render
 from django.http import FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
-
+from tripper.datadoc.dataset import get_prefixes
+from django.http import JsonResponse
 from .utils import (
     json_response,
     get_triplestore,
@@ -26,8 +27,8 @@ def home(request):
 
 def edit_form(request):
     prefix = {
-        'xyz': 'http://hello-world.com',
-        'abc': 'http://hello-world-2.com',
+        'foaf': 'http://xmlns.com/foaf/0.1/',
+        'prov': 'http://www.w3.org/ns/prov#',
     }
     prefix_list = []
     for key, val in prefix.items():
@@ -35,6 +36,13 @@ def edit_form(request):
     ctx = dict(prefix_list=prefix_list)
     return render(request, "datadoc/views/edit_form.html", context=ctx)
 
+def get_prefixes_view(request):
+    """
+    Django view to return the list of prefixes from Tripper as JSON.
+    """
+    prefixes_dict = get_prefixes() 
+    prefixes = [{'prefix': k, 'iri': v} for k, v in prefixes_dict.items()]
+    return JsonResponse({'prefixes': prefixes})
 
 def upload_file(request):
     return render(request, "datadoc/views/upload_file.html")
@@ -82,7 +90,6 @@ def upload_file_url(request):
         url = request.POST.get("url")
         ts = get_triplestore(settings.DATADOCWEB["triplestore"])
         return handle_file_url(url, ts)
-
 
 @csrf_exempt
 def process_csv(request):
