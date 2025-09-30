@@ -15,6 +15,13 @@ In addition, the project uses the following django packages:
 
 - [django-htmx](https://pypi.org/project/django-htmx/)
 
+Run using docker
+------------
+
+```
+docker-compose -f docker-compose.yml  up -d
+```
+
 Installation
 ------------
 

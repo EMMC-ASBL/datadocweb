@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - graphdb
+    environment:
+      - TRIPLESTORE_BASE_IRI=http://graphdb:7200/repositories/matchmaker
+      - TRIPLESTORE_UPDATE_IRI=http://graphdb:7200/repositories/matchmaker/statements
+    networks:
+      - backend
+
+  graphdb:
+    image: ontotext/graphdb:11.0.1
+    ports:
+      - "7200:7200"
+    environment:
+      - GRAPHDB_LICENSE=your_license_key_here
+    volumes:
+      - graphdb-data:/opt/graphdb/data
+    networks:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  graphdb-data:
+
+networks:
+  backend:
+    driver: bridge
