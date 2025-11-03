@@ -114,17 +114,19 @@ Running tests for the Django app
  python manage.py test datadoc.tests
  ```
 
-External links
---------------
+Install the "datadoc" Django App in a Django Project
+----------------------------------------------------
 
-Some examples of graphical user interface from various knowledge graph tools:
+1. Install in the Python virtual environment of the Django Project the package
+   "datadoc".
+2. In your "settings.py", add an item "datadoc" in the INSTALLED_APPS.
+3. In your "settings.py", add a dict DATADOCWEB to configure the base
+   template and the triplestore (see [core/settings.py](./core/settings.py)).
 
- - https://triplydb.com/academy/iris/
- - https://graphdb.ontotext.com/documentation/10.0/loading-data-using-the-workbench.html
- - https://json-ld.org/playground/
- - https://www.wikidata.org/wiki/Wikidata:Query_Builder
- - https://query.wikidata.org/querybuilder/?uselang=en
-
+```sh
+cd datadocweb
+pip install --editable .
+```
 
 Design and Mockups
 ============================
