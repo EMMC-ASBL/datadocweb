@@ -3,6 +3,7 @@
 from pathlib import Path
 import mimetypes
 from django.conf import settings
+from django.apps import apps
 from django.shortcuts import render
 from django.http import FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
@@ -17,12 +18,28 @@ from .utils import (
 )
 
 
+def default_context(request):
+    """ Create a default context from the settings and from multiple
+        AppConfig.
+    """
+    ctx = {}
+    base = settings.DATADOCWEB.get('base_template', 'datadoc/base.html')
+    ctx['datadoc_base_template'] = base
+    app_names = settings.DATADOCWEB.get('apps', [])
+    for app in apps.get_app_configs():
+        if app.name in app_names:
+            app.update_context(request, ctx)
+    return ctx
+
+
 def index(request):
-    return render(request, "datadoc/index.html")
+    ctx = default_context(request)
+    return render(request, "datadoc/index.html", ctx)
 
 
 def home(request):
-    return render(request, "datadoc/views/home.html")
+    ctx = default_context(request)
+    return render(request, "datadoc/views/home.html", ctx)
 
 
 def edit_form(request):
@@ -33,7 +50,8 @@ def edit_form(request):
     prefix_list = []
     for key, val in prefix.items():
         prefix_list.append({'prefix': key, 'iri': val})
-    ctx = dict(prefix_list=prefix_list)
+    ctx = default_context(request)
+    ctx.update(prefix_list=prefix_list)
     return render(request, "datadoc/views/edit_form.html", context=ctx)
 
 
@@ -47,15 +65,18 @@ def get_prefixes_view(request):
 
 
 def upload_file(request):
-    return render(request, "datadoc/views/upload_file.html")
+    ctx = default_context(request)
+    return render(request, "datadoc/views/upload_file.html", ctx)
 
 
 def upload_url(request):
-    return render(request, "datadoc/views/upload_url.html")
+    ctx = default_context(request)
+    return render(request, "datadoc/views/upload_url.html", ctx)
 
 
 def explore(request):
-    return render(request, "datadoc/views/explore.html")
+    ctx = default_context(request)
+    return render(request, "datadoc/views/explore.html", ctx)
 
 
 def download_template(request, filename):

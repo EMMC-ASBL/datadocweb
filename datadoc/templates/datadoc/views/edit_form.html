@@ -1,6 +1,6 @@
-{% extends 'datadoc/base.html' %}
+{% extends datadoc_base_template %}
+
 {% block content %}
-{% include 'datadoc/components/header.html' %}
 <div class="container mt-4">
   <h3 class="mb-4">Documentation Form</h3>
   <div class="btn-toolbar" role="toolbar">
@@ -140,7 +140,7 @@
     $('#warn-alert').show();
   }
   function viewPrefixes() {
-    fetch("{% url 'get_prefixes' %}")
+    fetch("{% url 'datadoc:get_prefixes' %}")
       .then(response => response.json())
       .then(data => {
         const list = document.getElementById('prefix-list');
@@ -291,7 +291,7 @@
         csv_prefix += `${p.prefix}:${p.iri}\n`;
       });
       console.log(csv_prefix);
-      fetch('{% url "process_csv" %}', {
+      fetch('{% url "datadoc:process_csv" %}', {
         method: 'POST',
         headers: {
           'HX-Request': 'true',
@@ -370,6 +370,4 @@
   }
 
 </script>
-
-
 {% endblock %}

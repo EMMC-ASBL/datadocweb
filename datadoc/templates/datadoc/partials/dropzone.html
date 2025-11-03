@@ -28,7 +28,7 @@
   }
 </style>
 
-<form id="upload-form" hx-post="{% url 'upload_files' %}" hx-target="#upload-result" hx-swap="innerHTML"
+<form id="upload-form" hx-post="{% url 'datadoc:upload_files' %}" hx-target="#upload-result" hx-swap="innerHTML"
   hx-push-url="false" enctype="multipart/form-data" method="POST">
   {% csrf_token %}
   <div id="drop-zone" class="dropzone">
@@ -41,7 +41,7 @@
 <div id="upload-result"></div>
 
 {% include 'datadoc/components/dialog.html' %}
-
+{% block scripts %}
 <script>
   const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
@@ -89,3 +89,4 @@
   });
 
 </script>
+{% endblock %}

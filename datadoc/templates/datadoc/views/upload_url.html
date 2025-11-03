@@ -1,7 +1,6 @@
-{% extends 'datadoc/base.html' %}
+{% extends datadoc_base_template %}
 
 {% block content %}
-{% include 'datadoc/components/header.html' %}
 <div class="container mt-4">
   <div class="alert alert-info" role="alert">
     <p>
@@ -14,10 +13,10 @@
     <p class="mb-0">
       Accepted file types include CSV, JSON, YAML, and their respective variations.
       Example templates can be found
-      <a href="/upload-file" target="_blank">here</a>
+      <a href="{% url 'datadoc:upload_file' %}" target="_blank">here</a>
     </p>
   </div>
-  <form id="url-form" method="post" hx-post="{% url 'upload_file_url' %}" hx-target="#processing"
+  <form id="url-form" method="post" hx-post="{% url 'datadoc:upload_file_url' %}" hx-target="#processing"
         hx-swap="innerHTML">
     {% csrf_token %}
     <div class="input-group mb-3">
@@ -32,7 +31,9 @@
 </div>
 
 {% include 'datadoc/components/dialog.html' %}
-
+{% endblock %}
+{% block scripts %}
+{{ block.super }}
 <script>
   document.getElementById('url').addEventListener('input', function () {
       document.getElementById('btn-submit').disabled = !this.value;

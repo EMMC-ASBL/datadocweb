@@ -16,7 +16,7 @@
     </div>
   </div>
 </div>
-
+{% block scripts %}
 <script>
   function showDialog(message, status_code) {
     $('#dialog .modal-title').text(status_code == 200 ? 'Success' : 'Error');
@@ -25,3 +25,4 @@
     $('#dialog').modal('show');
   }
 </script>
+{% endblock %}

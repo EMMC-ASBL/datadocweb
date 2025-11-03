@@ -1,4 +1,4 @@
-{% extends 'datadoc/base.html' %}
+{% extends datadoc_base_template %}
 
 {% block content %}
 <div class="d-flex text-center align-items-center min-vh-100">
@@ -24,7 +24,7 @@
           Read more on datadocweb
         </a>
         <a class="btn btn-primary btn-lg px-4 gap-3"
-           href="{% url 'home' %}" role="button">
+           href="{% url 'datadoc:home' %}" role="button">
           Open App
         </a>        
       </div>

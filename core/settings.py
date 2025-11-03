@@ -91,6 +91,7 @@ DATABASES = {
 }
 
 DATADOCWEB = {
+    'base_template': 'datadoc/base.html',
     'triplestore': {
         'backend': 'sparqlwrapper',
         'base_iri': env.str('TRIPLESTORE_BASE_IRI'),
