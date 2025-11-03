@@ -9,5 +9,8 @@ setup(
     name='datadoc',
     version='24.10',
     packages=find_packages(),
+    package_data={
+        'datadoc': ['templates/**']
+    },
     install_requires=['numpy', 'requests']
 )
