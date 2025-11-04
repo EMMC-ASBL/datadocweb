@@ -1,0 +1,74 @@
+{% extends datadoc_base_template %}
+
+{% block content %}
+<div class="container mt-3">
+  <h5>Datatable schema</h5>
+  <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
+    <div class="btn-group btn-group-sm me-2" role="group">
+      <button type="button" class="btn btn-light">Create</button>
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          Open
+        </button>
+        <ul class="dropdown-menu">
+          {% for item in schemas %}
+          <li><a class="dropdown-item" href="{% url 'datadoc:datatable-schema' %}?schema={{ item.uid }}">
+            {{ item.title }}
+          </a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <button type="button" class="btn btn-light">Rename</button>
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          Delete
+        </button>
+        <ul class="dropdown-menu">
+          <li><h6 class="dropdown-header">Schema</h6></li>
+          <li><button type="button" class="dropdown-item" onclick="onDelete('schema', '{{ schema.uid }}')">
+            {{ schema.title }}
+          </button></li>
+          <li><h6 class="dropdown-header">Table</h6></li>
+          {% for table in schema.tables.values %}
+          <li><button type="button" class="dropdown-item" onclick="onDelete('table', '{{ table.uid }}')">
+            {{ table.title }}
+          </button></li>
+          {% endfor %}
+          <li><h6 class="dropdown-header">Column</h6></li>
+          {% for table in schema.tables.values %}
+          {% for col in table.columns.values %}
+          <li><button type="button" class="dropdown-item" onclick="onDelete('column', '{{ col.uid }}')">
+            {{ table.title }} / {{ col.title }}
+          </button></li>
+          {% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="btn-group btn-group-sm" role="group">
+      <button type="button" class="btn btn-light">Add table</button>
+      <button type="button" class="btn btn-light">Add column</button>
+      <button type="button" class="btn btn-light">Add choices</button>
+    </div>
+  </div>
+  <div class="card mt-3">
+    <div class="card-header">
+      Schema <strong>{{ schema.title }}</strong>
+    </div>
+    {% include 'datadoc/components/table.html' with data=schema.column_table %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+
+function onDelete(cat, uid) {
+  fetch(`{% url 'datadoc:datatable-schema' %}?category=${cat}&uid=${uid}`, {
+    method: 'DELETE'
+  }).then(response => {
+    console.log(response);
+  });
+}
+
+</script>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends datadoc_base_template %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+  <h5>Dataset editor</h5>
+  <div class="btn-toolbar" role="toolbar">
+    <div class="btn-group btn-group-sm me-2" role="group">
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          Open dataset
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#">Dropdown link</a></li>
+          <li><a class="dropdown-item" href="#">Dropdown link</a></li>
+        </ul>
+      </div>
+      <button type="button" class="btn btn-light">Rename</button>
+      <button type="button" class="btn btn-light">Remove</button>
+      <a href="{% url 'datadoc:datatable-schema' %}" class="btn btn-light">Schema</a>
+    </div>
+    <div class="btn-group btn-group-sm me-2" role="group">
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          Open table
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#">Dropdown link</a></li>
+          <li><a class="dropdown-item" href="#">Dropdown link</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="btn-group btn-group-sm" role="group">
+      <button type="button" class="btn btn-light">Add row</button>
+      <button type="button" class="btn btn-light">Remove row</button>
+    </div>
+  </div>
+  <div class="card mt-3">
+    <div class="card-header">
+      Table <strong>Images</strong> in dataset <strong>Hello world</strong>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Firstname</th>
+          <th>Lastname</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>John</td>
+          <td>Doe</td>
+          <td>john@example.com</td>
+        </tr>
+        <tr>
+          <td>Mary</td>
+          <td>Moe</td>
+          <td>mary@example.com</td>
+        </tr>
+        <tr>
+          <td>July</td>
+          <td>Dooley</td>
+          <td>july@example.com</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+  <div id="dialog-add-dataset" class="modal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add dataset</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="dataset-name" class="form-label">The name of dataset</label>
+              <input type="text" class="form-control" name="name" id="dataset-name" placeholder="Enter a name" required>
+              <div class="invalid-feedback">
+                Please enter a name for the dataset.
+              </div>                        
+            </div>            
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" onclick="onCancelDialog('#dialog-add-dataset')">Cancel</button>
+          <button type="button" class="btn btn-success" onclick="onSubmitDialog('#dialog-add-dataset')">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dialog-remove" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Modal title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="hidden" name="datatype" value="">
+          <input type="hidden" name="item" value="">
+          <input type="text" name="name" value="" placeholder="Enter a name" required>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success"></button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -5,7 +5,7 @@ import mimetypes
 from django.conf import settings
 from django.apps import apps
 from django.shortcuts import render
-from django.http import FileResponse, Http404
+from django.http import HttpRequest, FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from tripper.datadoc.dataset import get_prefixes
 from django.http import JsonResponse
@@ -16,6 +16,7 @@ from .utils import (
     handle_file_url,
     process_csv_form,
 )
+from .datatable_storage import DataTableStorage
 
 
 def get_setting(name: str, default_value: str = ''):
@@ -61,7 +62,6 @@ def edit_form(request):
     ctx = default_context(request)
     ctx.update(prefix_list=prefix_list)
     return render(request, "datadoc/views/edit_form.html", context=ctx)
-
 
 def get_prefixes_view(request):
     """
@@ -140,3 +140,55 @@ def process_csv(request):
 
         csv_data = request.POST.get("csv_data")
         return process_csv_form(csv_data, ts)
+
+
+def datatable_storage():
+    return DataTableStorage.from_config(get_setting('datatable'))
+
+
+def datatable(request):
+    ctx = default_context(request)
+    return render(request, 'datadoc/views/datatable.html', ctx)
+
+
+def datatable_schema_get(request: HttpRequest):
+    ctx = default_context(request)
+    storage = datatable_storage()
+    ctx['schemas'] = storage.get_list('schema')
+    uid = request.GET.get('schema')
+    if uid:
+        try:
+            schema = storage.get('schema', uid)
+            ctx['schema'] = schema
+        except Exception as ex:
+            ctx['error'] = str(ex)
+    return render(request, 'datadoc/views/datatable-schema.html', ctx)
+
+
+def datatable_schema_post(request: HttpRequest):
+    data = request.POST.dict()
+    newdata = {'category': data.get('category', '')}
+    if newdata['category']:
+        storage = datatable_storage()
+        newdata = storage.post(data)
+    return JsonResponse(newdata)
+
+
+def datatable_schema_delete(request: HttpRequest):
+    deleted = False
+    cat = request.GET.get('category')
+    uid = request.GET.get('uid')
+    if cat and uid:
+        storage = datatable_storage()
+        deleted = storage.delete(cat, uid)
+    data = dict(category=cat, uid=uid, deleted=deleted)
+    return JsonResponse(data)
+
+
+def datatable_schema(request: HttpRequest):
+    if request.method == 'GET':
+        return datatable_schema_get(request)
+    elif request.method == 'POST':
+        return datatable_schema_post(request)
+    elif request.method == 'DELETE':
+        return datatable_schema_delete(request)

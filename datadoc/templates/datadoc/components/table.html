@@ -1,0 +1,11 @@
+<table class="{{ data.class }}">
+  {% if data.caption %}<caption>{{ data.caption}}</caption>{% endif %}
+  <thead>
+    <tr>{% for col in data.cols %}<th>{{ col }}</th>{% endfor %}</tr>
+  </thead>
+  <tbody>
+    {% for row in data.rows %}
+    <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </tbody>
+</table>

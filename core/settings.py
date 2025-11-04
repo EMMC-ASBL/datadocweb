@@ -102,6 +102,10 @@ DATADOCWEB = {
     "prefix": {
         "foaf": "http://xmlns.com/foaf/0.1/",
         "prov": "http://www.w3.org/ns/prov#",
+    },
+    "datatable": {
+        "backend": "json",
+        "workdir": BASE_DIR / 'datadoc/tests/storage'
     }
 }
 
