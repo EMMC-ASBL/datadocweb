@@ -157,11 +157,11 @@ def datatable_schema_get(request: HttpRequest):
     ctx['schemas'] = storage.get_list('schema')
     uid = request.GET.get('schema')
     if uid:
-        try:
-            schema = storage.get('schema', uid)
-            ctx['schema'] = schema
-        except Exception as ex:
-            ctx['error'] = str(ex)
+        schema = storage.get('schema', uid)
+        if schema.exists():
+            ctx['schema'] = schema.data['schema']
+        else:
+            ctx['error'] = schema.message
     return render(request, 'datadoc/views/datatable-schema.html', ctx)
 
 
