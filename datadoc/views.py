@@ -2,30 +2,22 @@
 
 from pathlib import Path
 import mimetypes
-from django.conf import settings
+
 from django.apps import apps
 from django.shortcuts import render
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+
 from tripper.datadoc.dataset import get_prefixes
-from django.http import JsonResponse
 from .utils import (
     json_response,
     get_triplestore,
     handle_file,
     handle_file_url,
     process_csv_form,
+    get_setting,
+    triplestore_search
 )
-
-
-def get_setting(name: str, default_value: str = ''):
-    """ Return a config value from the datadocweb settings """
-    return settings.DATADOCWEB.get(name, default_value)
-
-
-def init_triplestore():
-    """ Init a triple store using the datadocweb config """
-    return get_triplestore(settings.DATADOCWEB['triplestore'])
 
 
 def default_context(request):
@@ -84,6 +76,18 @@ def upload_url(request):
 
 def explore(request):
     ctx = default_context(request)
+    query = request.GET.get('query', '')
+    if query:
+        ctx['query'] = query
+        ctx['error'] = ''
+        try:
+            ctx['table'] = triplestore_search(query)
+        except Exception as ex:
+            doc = ex.__class__.__doc__.rstrip('.')
+            if not doc:
+                doc = ex.__class__.__name__
+            err = str(ex).strip("'")
+            ctx['error'] = f'{doc}: "{err}".'
     return render(request, "datadoc/views/explore.html", ctx)
 
 
@@ -111,7 +115,7 @@ def upload_files(request):
     if request.method != "POST" or "files" not in request.FILES:
         return json_response("Error", "No file uploaded")
 
-    ts = init_triplestore()
+    ts = get_triplestore()
     return handle_file(request.FILES["files"], ts)
 
 
@@ -119,7 +123,7 @@ def upload_file_url(request):
     """Upload documentation to the triple store from file URL's"""
     if request.method == "POST":
         url = request.POST.get("url")
-        ts = init_triplestore()
+        ts = get_triplestore()
         return handle_file_url(url, ts)
 
 
@@ -127,7 +131,7 @@ def upload_file_url(request):
 def process_csv(request):
     if request.method == "POST":
 
-        ts = init_triplestore()
+        ts = get_triplestore()
 
         csv_prefix = request.POST.get("csv_prefix")
         if csv_prefix:
