@@ -8,8 +8,15 @@
       <button class="btn btn-outline-secondary" type="submit" id="btn-search">
         <i class="bi bi-search"></i>
       </button>
-    </div>    
+    </div>
   </form>
+  {% if filters %}
+  <select class="form-select" name="type">
+    {% for item in filters %}
+    <option value="{{ item.value }}">{{ item.text }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
   {% if error %}
   <div id="search-error">
     <div style="margin-top: 10px; margin-bottom: 0px;"

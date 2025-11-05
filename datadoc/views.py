@@ -16,7 +16,8 @@ from .utils import (
     handle_file_url,
     process_csv_form,
     get_setting,
-    triplestore_search
+    triplestore_search,
+    triplestore_filters
 )
 
 
@@ -81,6 +82,8 @@ def explore(request):
         ctx['query'] = query
         ctx['error'] = ''
         try:
+            # TODO: refine the "filters" feature, what filters to add?
+            # ctx['filters'] = triplestore_filters()
             ctx['table'] = triplestore_search(query)
         except Exception as ex:
             doc = ex.__class__.__doc__.rstrip('.')

@@ -12,7 +12,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.core.files.base import File
 
-from tripper import Triplestore
+from tripper import Triplestore, RDF
 from tripper.datadoc import (
     save_datadoc, store, told, TableDoc, search_iris, load_dict
 )
@@ -225,45 +225,72 @@ def substring_index(text: str, substring: str):
     return i
 
 
+def value_to_cell(value) -> dict:
+    """ Return cell attributes for HTML tag TD """
+    attrs = {}
+    cell = {'value': value, 'text': '', 'href': '', 'attrs_dict': attrs}
+    if isinstance(value, str):
+        # value starts with: http, https, ftp, file, ...
+        if substring_index(value, '://') in [3, 4, 5]:
+            url = urlparse(value)
+            if url.fragment:
+                attrs.update(title=value)
+                cell['text'] = url.fragment
+            else:
+                cell['href'] = value
+                cell['text'] = Path(url.path).name
+
+        # otherwise put the value as text
+        else:
+            cell['text'] = value
+
+    elif isinstance(value, float):
+        cell['text'] = f'{value:g}'
+
+    else:
+        cell['text'] = f'{value}'
+
+    cell['attrs'] = ' '.join([f'{k}="{v}"' for k, v in attrs.items()])
+
+    return cell
+
+
+def value_to_option(value) -> dict:
+    """ Return option attributes for HTML tag OPTION """
+    opt = None
+    cell = value_to_cell(value)
+    if 'title' in cell['attrs_dict']:
+        opt = dict(value=cell['attrs_dict']['title'], text=cell['text'])
+    return opt
+
+
+def triplestore_filters() -> dict:
+    """ Search all distinct RDF.type in the triplestore """
+    ts = get_triplestore()
+
+    options = []
+    types = set()
+    for item in ts.objects(predicate=RDF.type):
+        if item not in types:
+            types.add(item)
+            option = value_to_option(item)
+            if option:
+                options.append(option)
+
+    return options
+
+
 def triplestore_search(query: str) -> dict:
     """ Search in the triplestore """
     ts = get_triplestore()
     iris = search_iris(ts, query)
-
-    print(iris)
 
     dicts = [load_dict(ts, iri) for iri in iris]
     td = TableDoc.fromdicts(dicts)
 
     rows = []
     for row in td.data:
-        newrow = []
-        for value in row:
-            attrs = {}
-            cell = {'value': value, 'text': '', 'href': ''}
-            if isinstance(value, str):
-                # value starts with: http, https, ftp, file, ...
-                if substring_index(value, '://') in [3, 4, 5]:
-                    url = urlparse(value)
-                    if url.fragment:
-                        attrs.update(title=value)
-                        cell['text'] = url.fragment
-                    else:
-                        cell['href'] = value
-                        cell['text'] = Path(url.path).name
-
-                # otherwise put the value as text
-                else:
-                    cell['text'] = value
-
-            elif isinstance(value, float):
-                cell['text'] = f'{value:g}'
-
-            else:
-                cell['text'] = f'{value}'
-
-            cell['attrs'] = ' '.join([f'{k}="{v}"' for k, v in attrs.items()])
-            newrow.append(cell)
+        newrow = [value_to_cell(value) for value in row]
         rows.append(newrow)
 
     result = {
