@@ -6,15 +6,17 @@ import os
 import json
 
 try:
-    from .datatable_schema import Schema
+    from .datatable_schema import Schema, Table, Column, Model
     from .datatable import DataTables
 except Exception:
-    from datatable_schema import Schema
+    from datatable_schema import Schema, Table, Column, Model
     from datatable import DataTables
 
 
 @dataclass
 class Result:
+
+    """ Result of a CRUD operation """
 
     category: str = ''
     uid: str = ''
@@ -22,15 +24,20 @@ class Result:
     title: str = ''
     status: str = ''
     message: str = ''
-    data: Dict[str, Any] = None
+    schema: Schema = None
+    table: Table = None
+    column: Column = None
+    datatable: DataTables = None
 
-    def exists(self):
-        return (self.status != 'error') and self.uid and self.category
+    def __bool__(self):
+        data = getattr(self, self.category, None)
+        return (self.status != 'error') and (data is not None)
 
-    def update_data(self, **kwargs):
-        if self.data is None:
-            self.data = {}
-        self.data.update(**kwargs)
+    def update(self, model: Model):
+        self.uid = model.uid
+        self.name = model.name
+        self.title = model.title
+        setattr(self, self.category, model)
 
     def error(self, message: str):
         self.status = 'error'
@@ -39,7 +46,8 @@ class Result:
     def to_dict(self, with_data=True):
         data = asdict(self)
         if not with_data:
-            data.pop('data')
+            for name in ['schema', 'table', 'column', 'datatable']:
+                data.pop(name)
         return data
 
 
@@ -133,15 +141,15 @@ class JsonStorage(DataTableStorage):
 
     def _store_result(self, result: Result):
         """ Store a result """
-        if result.exists():
+        if result:
             if result.category in ['schema', 'table', 'column']:
-                schema: Schema = result.data['schema']
+                schema = result.schema
                 fil = self.workdir / f'schema/{schema.uid}.json'
                 fil.parent.mkdir(exist_ok=True)
                 fil.write_text(json.dumps(schema.dump(), indent=2))
 
             elif result.category in ['datatable', 'row']:
-                tables: DataTables = result.data['datatable']
+                tables = result.datatable
                 fil = self.workdir / f'datatable/{tables.uid}.json'
                 fil.parent.mkdir(exist_ok=True)
                 fil.write_text(json.dumps(tables.dump(), indent=2))
@@ -191,14 +199,18 @@ class JsonStorage(DataTableStorage):
         res = Result(category=category, uid=uid)
         fil = self.workdir / f'{category}/{uid}.json'
         if fil.exists():
-            rows = json.loads(fil.read_text())
-            if category == 'schema':
-                schema = Schema()
-                schema.load(rows)
-                res.update_data(schema=schema)
+            data = json.loads(fil.read_text())
+            if res.category == 'schema':
+                res.schema = Schema()
+                res.schema.load(data)
                 res.status = 'loaded'
-            elif category == 'datatable':
-                pass
+
+            elif res.category == 'datatable':
+                schema = self.get('schema', data.get('schema', ''))
+                if schema:
+                    res.datatable = DataTables(schema)
+                    res.datatable.load(data)
+                    res.status = 'loaded'
         else:
             res.error(f'{category} not found "{uid}"')
         return res
@@ -222,38 +234,29 @@ class JsonStorage(DataTableStorage):
             schema_id = data.get('schema', '')
 
             if result.category == 'schema':
-                schema = Schema(name=name, title=title)
-                result.uid = schema.uid
-                result.update_data(schema=schema)
+                result.update(Schema(name=name, title=title))
 
             elif result.category == 'table':
                 res = self.get('schema', schema_id)
-                if res.exists():
-                    schema: Schema = res.data['schema']
-                    table = schema.add(name, title)
-                    result.uid = table.uid
-                    result.update_data(schema=schema, table=table)
+                if res:
+                    result.schema = res.schema
+                    result.update(result.schema.add(name, title))
 
             elif result.category == 'column':
                 res = self.get('schema', schema_id)
-                if res.exists():
-                    schema: Schema = res.data['schema']
-                    result.update_data(schema=schema)
+                if res:
+                    result.schema = res.schema
                     table_id = data.get('table', '')
-                    if table_id in schema.tables:
-                        result.update_data(table=schema.tables[table_id])
-                        col = schema.tables[table_id].add(name, title, dtype)
-                        result.uid = col.uid
-                        result.update_data(column=col)
+                    if table_id in result.schema.tables:
+                        result.table = result.schema.tables[table_id]
+                        result.update(result.table.add(name, title, dtype))
                     else:
                         result.error(f'table not found {table_id}')
 
             elif result.category == 'datatable':
                 res = self.get('schema', schema_id)
-                if res.exists():
-                    tables = DataTables(res.data['schema'])
-                    result.uid = tables.uid
-                    result.update_data(datatable=tables)
+                if res:
+                    result.update(DataTables(res.schema, title))
 
         self._store_result(result)
         return result

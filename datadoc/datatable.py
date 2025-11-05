@@ -130,10 +130,12 @@ class DataTable:
 
 class DataTables(Dict[str, DataTable]):
 
-    def __init__(self, schema: Schema):
+    def __init__(self, schema: Schema, title: str = ''):
         super().__init__()
         self.schema = schema
         self.uid = f'{uuid4()}'
+        self.name = title
+        self.title = title
         for table in self.schema.tables.values():
             self[table.name] = DataTable(table)
 
@@ -150,11 +152,23 @@ class DataTables(Dict[str, DataTable]):
             table.generate(random.randint(2, nmax), choices)
 
     def dump(self):
-        cells = []
-        for table in self.values():
-            print(table)
-            for row in table.rows:
-                for col in table.schema.columns.values():
-                    cell = dict(r=row['uid'], c=col.uid, v=row[col.name])
-                    cells.append(cell)
-        return cells
+        data = {
+            'schema': self.schema.uid,
+            'uid': self.uid,
+            'name': self.name,
+            'title': self.title,
+            'tables': {}
+        }
+        for name, table in self.items():
+            rows = [row.to_list() for row in table.rows]
+            data['tables'][name] = rows
+        return data
+
+    def load(self, data: dict):
+        self.uid = data.get('uid', '')
+        self.name = data.get('name', '')
+        self.title = data.get('title', '')
+        for name, rows in data.get('tables', {}).items():
+            for row in rows:
+                self[name].add_row(*row)
+        return data

@@ -64,17 +64,17 @@ class Generator:
             'cooling': cooling,
             'test_type': test_type
         }
-        res.data['datatable']['alloy'].generate(4, choices)
-        for i, row in enumerate(res.data['datatable']['alloy'].rows):
+        res.datatable['alloy'].generate(4, choices)
+        for i, row in enumerate(res.datatable['alloy'].rows):
             row['name'] = alloys[i]
 
         choices['name'] = methods
-        res.data['datatable']['treatment'].generate(5, choices)
-        for i, row in enumerate(res.data['datatable']['treatment'].rows):
+        res.datatable['treatment'].generate(5, choices)
+        for i, row in enumerate(res.datatable['treatment'].rows):
             row['name'] = methods[i]
 
-        res.data['datatable']['tests'].generate(15, choices)
-        print(res.data['datatable']['alloy'])
+        res.datatable['tests'].generate(15, choices)
+        print(res.datatable['alloy'])
 
         storage._store_result(res)
 
