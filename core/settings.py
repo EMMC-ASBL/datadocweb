@@ -95,13 +95,15 @@ DATADOCWEB = {
     "file_templates": BASE_DIR / "core/static/core/templates/",
     "triplestore": {
         "backend": "sparqlwrapper",
-        "base_iri": env.str("TRIPLESTORE_BASE_IRI"),
+        "base_iri": env.str("TRIPLESTORE_BASE_IRI", ""),
+        "update_iri": env.str("TRIPLESTORE_UPDATE_IRI", ""),
         "username": env.str("TRIPLESTORE_USERNAME", None),
         "password": env.str("TRIPLESTORE_PASSWORD", None)
     },
     "prefix": {
         "foaf": "http://xmlns.com/foaf/0.1/",
         "prov": "http://www.w3.org/ns/prov#",
+        "pm": "https://www.ntnu.edu/physmet/data#"
     }
 }
 

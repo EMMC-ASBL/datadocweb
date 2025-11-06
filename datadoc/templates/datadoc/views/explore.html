@@ -4,14 +4,53 @@
 <div class="container mt-4">
   <form class="col-12 mb-3 mb-lg-0 me-lg-3">
     <div class="input-group mb-3">
-      <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
-      <button class="btn btn-outline-secondary" type="button" id="btn-search">
+      <input type="search" class="form-control" placeholder="Search..." name="query" id="input-query" value="{{ query }}">
+      <button class="btn btn-outline-secondary" type="submit" id="btn-search">
         <i class="bi bi-search"></i>
       </button>
-    </div>    
+    </div>
   </form>
-  <div class="alert alert-warning" role="alert">
-    Not yet implemented
-  </div>  
+  {% if filters %}
+  <select class="form-select" name="type">
+    {% for item in filters %}
+    <option value="{{ item.value }}">{{ item.text }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
+  {% if error %}
+  <div id="search-error">
+    <div style="margin-top: 10px; margin-bottom: 0px;"
+         role="alert"
+         class="alert alert-warning alert-dismissible fade show">
+      <strong>Error!</strong> {{ error }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  </div>
+  {% elif query and table %}
+  <div id="search-result">
+    <div class="text-nowrap" style="overflow-x: auto">
+      <table id="result" class="table table-sm">
+        <thead>
+          <tr>{% for col in table.cols %}<th>{{ col }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in table.rows %}
+          <tr>{% for cell in row %}<td {{ cell.attrs|safe }}>{% if cell.href %}{% include 'datadoc/components/link.html' with data=cell %}{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% elif query %}
+  <div id="search-result-none">
+    <p>no results matched with your query</p>
+    <p>Tips for improving the results</p>
+    <ul>
+      <li>Please ensure that you have typed the search term correctly.</li>
+      <li>Try using more general terms to broaden your search.</li>
+      <li>Consider using synonyms or related terms to expand your search.</li>          
+    </ul>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

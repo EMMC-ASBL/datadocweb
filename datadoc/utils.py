@@ -3,14 +3,19 @@
 from typing import Callable, Optional
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 import tempfile
 import json
 import requests
+
+from django.conf import settings
 from django.http import JsonResponse
 from django.core.files.base import File
 
-from tripper import Triplestore
-from tripper.datadoc import save_datadoc, store, told, TableDoc
+from tripper import Triplestore, RDF
+from tripper.datadoc import (
+    save_datadoc, store, told, TableDoc, search_iris, load_dict
+)
 
 
 SUPPORTED_EXTENSIONS = {
@@ -21,9 +26,23 @@ SUPPORTED_EXTENSIONS = {
 STATUS_CODE = {"Success": 200, "Error": 400, "Exception": 500}
 
 
-def get_triplestore(config: dict):
-    """Returns instance of Triplestore from the config"""
-    return Triplestore(**config)
+def get_setting(name: str, default_value: str = ''):
+    """ Return a config value from the datadocweb settings """
+    return settings.DATADOCWEB.get(name, default_value)
+
+
+def get_triplestore():
+    """ Init a triple store using the datadocweb config """
+    config = get_setting('triplestore', None)
+    if config:
+        ts = Triplestore(**config)
+        prefix = get_setting('prefix', None)
+        if prefix:
+            for key, val in prefix.items():
+                ts.bind(key, val)
+        return ts
+    else:
+        raise ValueError('config for the triplestore is not found.')
 
 
 def get_filetype(filemame: str) -> str:
@@ -196,3 +215,88 @@ def process_csv_form(csv_data: str, ts: Triplestore):
     finally:
         if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
+
+
+def substring_index(text: str, substring: str):
+    try:
+        i = text.index(substring)
+    except Exception:
+        i = -1
+    return i
+
+
+def value_to_cell(value) -> dict:
+    """ Return cell attributes for HTML tag TD """
+    attrs = {}
+    cell = {'value': value, 'text': '', 'href': '', 'attrs_dict': attrs}
+    if isinstance(value, str):
+        # value starts with: http, https, ftp, file, ...
+        if substring_index(value, '://') in [3, 4, 5]:
+            url = urlparse(value)
+            if url.fragment:
+                attrs.update(title=value)
+                cell['text'] = url.fragment
+            else:
+                cell['href'] = value
+                cell['text'] = Path(url.path).name
+
+        # otherwise put the value as text
+        else:
+            cell['text'] = value
+
+    elif isinstance(value, float):
+        cell['text'] = f'{value:g}'
+
+    else:
+        cell['text'] = f'{value}'
+
+    cell['attrs'] = ' '.join([f'{k}="{v}"' for k, v in attrs.items()])
+
+    return cell
+
+
+def value_to_option(value) -> dict:
+    """ Return option attributes for HTML tag OPTION """
+    opt = None
+    cell = value_to_cell(value)
+    if 'title' in cell['attrs_dict']:
+        opt = dict(value=cell['attrs_dict']['title'], text=cell['text'])
+    return opt
+
+
+def triplestore_filters() -> dict:
+    """ Search all distinct RDF.type in the triplestore """
+    ts = get_triplestore()
+
+    options = []
+    types = set()
+    for item in ts.objects(predicate=RDF.type):
+        if item not in types:
+            types.add(item)
+            option = value_to_option(item)
+            if option:
+                options.append(option)
+
+    return options
+
+
+def triplestore_search(query: str) -> dict:
+    """ Search in the triplestore """
+    ts = get_triplestore()
+    iris = search_iris(ts, query)
+
+    dicts = [load_dict(ts, iri) for iri in iris]
+    td = TableDoc.fromdicts(dicts)
+
+    rows = []
+    for row in td.data:
+        newrow = [value_to_cell(value) for value in row]
+        rows.append(newrow)
+
+    result = {
+        'cols': td.header,
+        'rows': rows,
+        'prefix': {k: f'{v}' for k, v in ts.namespaces.items()}
+    }
+
+    return result
