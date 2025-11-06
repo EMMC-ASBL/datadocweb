@@ -2,13 +2,14 @@
 """ Data Tables """
 
 from typing import List, Dict, Any, Literal
+from pathlib import Path
 from uuid import uuid4
 import random
 
 try:
-    from .datatable_schema import Table, Schema, PrettyTable
+    from .datatable_schema import Table, Schema, PrettyTable, HtmlDoc
 except Exception:
-    from datatable_schema import Table, Schema, PrettyTable
+    from datatable_schema import Table, Schema, PrettyTable, HtmlDoc
 
 
 class Row(Dict[str, Any]):
@@ -67,9 +68,7 @@ class DataTable:
                 if key in row:
                     row[key] = val
         elif args:
-            pk = self.schema.primary_key()
-            names = [name for name in self.schema.column_names if name != pk]
-            for name, value in zip(names, args):
+            for name, value in zip(row, args):
                 row[name] = value
         self.rows.append(row)
         return row
@@ -172,3 +171,13 @@ class DataTables(Dict[str, DataTable]):
             for row in rows:
                 self[name].add_row(*row)
         return data
+
+    def to_html(self, write: Path = None):
+        doc = HtmlDoc(f'DataTable - {self.title}')
+        doc.h(3, f'Tables - {self.title}')
+        schema = {table.name: table for table in self.schema.tables.values()}
+        for name, table in self.items():
+            doc.table(table.pretty_table(), schema[name].title)
+        doc.raw('<hr>')
+        self.schema.to_html(doc)
+        return doc.get_string(write)

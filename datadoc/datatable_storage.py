@@ -1,5 +1,5 @@
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Literal
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import os
@@ -16,14 +16,21 @@ except Exception:
 @dataclass
 class Result:
 
-    """ Result of a CRUD operation """
+    """ Result of a CRUD operation (create, read, update, delete) """
 
-    category: str = ''
+    # type of the data
+    category: Literal['schema', 'table', 'column', 'datatable'] = ''
+    # uid of the data
     uid: str = ''
+    # name of the data
     name: str = ''
+    # title of the data
     title: str = ''
-    status: str = ''
+    # status of the operation
+    status: Literal['created', 'loaded', 'updated', 'deleted', 'error'] = ''
+    # message from the operation
     message: str = ''
+    # loaded data
     schema: Schema = None
     table: Table = None
     column: Column = None
@@ -43,7 +50,7 @@ class Result:
         self.status = 'error'
         self.message = message
 
-    def to_dict(self, with_data=True):
+    def to_dict(self, with_data: bool = True):
         data = asdict(self)
         if not with_data:
             for name in ['schema', 'table', 'column', 'datatable']:
@@ -208,7 +215,7 @@ class JsonStorage(DataTableStorage):
             elif res.category == 'datatable':
                 schema = self.get('schema', data.get('schema', ''))
                 if schema:
-                    res.datatable = DataTables(schema)
+                    res.datatable = DataTables(schema.schema)
                     res.datatable.load(data)
                     res.status = 'loaded'
         else:

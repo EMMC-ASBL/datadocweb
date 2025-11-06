@@ -3,6 +3,7 @@
 
 from typing import Dict, Any, Literal
 from dataclasses import dataclass, fields
+from pathlib import Path
 from uuid import uuid4
 import nanoid
 from prettytable import PrettyTable
@@ -229,15 +230,15 @@ class Schema(Model):
                 data.append(col.dump(keymap['column']))
         return data
 
-    def to_string(self, layout: Literal['table', 'choice'] = 'table'):
-        """ Returns a string to displaty the schema """
+    def pretty_table(self, layout: Literal['table', 'choice'] = 'table'):
         tab = PrettyTable()
         if layout == 'table':
-            tab.field_names = ['schema', 'table', 'column', 'type', 'concept']
+            tab.field_names = ['schema', 'table', 'column', 'type', 'choices',
+                               'concept']
             for table in self.tables.values():
                 for col in table.columns.values():
                     tab.add_row([self.name, table.name, col.name, col.dtype,
-                                col.concept])
+                                 len(col.choices), col.concept])
 
         elif layout == 'choice':
             tab.field_names = ['table', 'column', 'value', 'text']
@@ -246,8 +247,20 @@ class Schema(Model):
                     if col.choices:
                         for key, val in col.choices.items():
                             tab.add_row([table.name, col.name, key, val])
+        return tab
 
-        return tab.get_string()
+    def to_string(self, layout: Literal['table', 'choice'] = 'table'):
+        """ Returns a string to display the schema """
+        return self.pretty_table(layout).get_string()
+
+    def to_html(self, doc: 'HtmlDoc' = None, write: Path = None) -> str:
+        """ Return html string  """
+        if doc is None:
+            doc = HtmlDoc('Schema')
+        doc.h(3, f'Schema - {self.title}')
+        doc.table(self.pretty_table('table'), 'Schema')
+        doc.table(self.pretty_table('choice'), 'Choices')
+        return doc.get_string(write)
 
     def column_table(self):
         data = {'class': 'table'}
@@ -261,3 +274,56 @@ class Schema(Model):
                              len(col.choices), col.concept])
         data['rows'] = rows
         return data
+
+
+class HtmlDoc:
+
+    def __init__(self, title: str):
+        bs = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist'
+        css = f'{bs}/css/bootstrap.min.css'
+        js = f'{bs}/js/bootstrap.bundle.min.js'
+        self.html = [
+            '<!DOCTYPE html>',
+            '<html lang="en">',
+            '<head>',
+            f'<title>{title if title else "Tables"}</title>',
+            '<meta charset="utf-8">',
+            f'<link href="{css}" rel="stylesheet">',
+            f'<script src="{js}"></script>',
+            '</head>',
+            '<body>',
+            '<div class="container mt-3">'
+        ]
+
+    def close(self):
+        if self.html[-1] != '</html>':
+            self.html += ['</div>', '</body>', '</html>']
+
+    def get_string(self, write: Path = None):
+        self.close()
+        txt = '\n'.join(self.html)
+        if write:
+            write.write_text(txt)
+        return txt
+
+    def h(self, i: int, title: str):
+        self.html.append(f'<h{i}>{title}</h{i}>')
+
+    def p(self, text: str):
+        self.html.append(f'<p>{text}</p>')
+
+    def raw(self, *args):
+        self.html += list(args)
+
+    def table(self, table: PrettyTable, title: str = ''):
+        attrs = {}
+        attrs['class'] = 'table table-bordered'
+        if title:
+            attrs['class'] += ' caption-top'
+
+        options = {}
+        options['attributes'] = attrs
+        if title:
+            options['title'] = title
+
+        self.html.append(table.get_html_string(**options))

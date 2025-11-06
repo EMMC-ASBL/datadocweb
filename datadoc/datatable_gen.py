@@ -64,6 +64,7 @@ class Generator:
             'cooling': cooling,
             'test_type': test_type
         }
+        choices['result'] = [f'file-{i:03}.csv' for i in range(1, 100)]
         res.datatable['alloy'].generate(4, choices)
         for i, row in enumerate(res.datatable['alloy'].rows):
             row['name'] = alloys[i]
@@ -74,7 +75,7 @@ class Generator:
             row['name'] = methods[i]
 
         res.datatable['tests'].generate(15, choices)
-        print(res.datatable['alloy'])
+        print(res.datatable['tests'])
 
         storage._store_result(res)
 
@@ -90,8 +91,13 @@ if __name__ == '__main__':
         'workdir': datadir
     })
 
-    gen = Generator(storage)
-    gen.generate_examples()
+    r = storage.get('datatable', '84c32d5f-31d7-43c1-b21b-622a77f32183')
+    fil = datadir / 'datatable.html'
+    r.datatable.to_html(datadir / 'datatable.html')
+    print(fil)
+
+    # gen = Generator(storage)
+    # gen.generate_examples()
 
     # schema = Schema(name='alloys', title='Heat Treatment of Alloys')
     # schema.add(
