@@ -17,6 +17,7 @@
 </head>
 
 <body>
+  {% if not hide_header %}{% include 'datadoc/components/header.html' %}{% endif %}
   {% block content %}
   {% endblock %}
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
