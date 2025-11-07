@@ -11,11 +11,14 @@
     </div>
   </form>
   {% if filters %}
-  <select class="form-select" name="type">
+  {% for item in filters %}
+  <button type="button" class="btn btn-light" onclick="onSearchType('{{ item.value }}')">{{ item.text }}</button>
+  {% endfor %}
+  <!-- <select class="form-select" name="type">
     {% for item in filters %}
     <option value="{{ item.value }}">{{ item.text }}</option>
     {% endfor %}
-  </select>
+  </select> -->
   {% endif %}
   {% if error %}
   <div id="search-error">
@@ -27,7 +30,7 @@
     </div>
   </div>
   {% elif query and table %}
-  <div id="search-result">
+  <div id="search-result" class="mt-3">
     <div class="text-nowrap" style="overflow-x: auto">
       <table id="result" class="table table-sm">
         <thead>
@@ -53,4 +56,12 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+  function onSearchType(value) {
+    $('#input-query').val(value);
+    $('#btn-search').click();
+  }
+</script>
 {% endblock %}

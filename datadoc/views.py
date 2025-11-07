@@ -83,7 +83,7 @@ def explore(request):
         ctx['error'] = ''
         try:
             # TODO: refine the "filters" feature, what filters to add?
-            # ctx['filters'] = triplestore_filters()
+            ctx['filters'] = triplestore_filters()
             ctx['table'] = triplestore_search(query)
         except Exception as ex:
             doc = ex.__class__.__doc__.rstrip('.')
@@ -110,8 +110,6 @@ def download_template(request, filename):
     raise Http404("Template not found")
 
 
-# Remove this if CSRF is configured properly and handled in your template
-@csrf_exempt
 def upload_files(request):
     """Upload files to the triple store"""
 
