@@ -8,7 +8,7 @@ from django.urls import reverse
 class FileUploadTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.upload_url = reverse("upload_files") 
+        self.upload_url = reverse("datadoc:upload_files") 
         self.test_files_dir = os.path.join(
             settings.BASE_DIR, "core/static/core/templates"
         )

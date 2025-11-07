@@ -9,7 +9,7 @@ from django.http import JsonResponse
 class FileURLUploadTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.upload_url = reverse("upload_file_url")
+        self.upload_url = reverse("datadoc:upload_file_url")
 
     @patch("datadoc.views.get_triplestore")
     @patch("datadoc.views.handle_file_url")
