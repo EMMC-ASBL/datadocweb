@@ -77,13 +77,13 @@ def upload_url(request):
 
 def explore(request):
     ctx = default_context(request)
+    # TODO: refine the "filters" feature, what filters to add?
+    ctx['filters'] = triplestore_filters()
     query = request.GET.get('query', '')
     if query:
         ctx['query'] = query
         ctx['error'] = ''
         try:
-            # TODO: refine the "filters" feature, what filters to add?
-            ctx['filters'] = triplestore_filters()
             ctx['table'] = triplestore_search(query)
         except Exception as ex:
             doc = ex.__class__.__doc__.rstrip('.')

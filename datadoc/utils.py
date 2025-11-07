@@ -2,6 +2,7 @@
 
 from typing import Callable, Optional
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 import tempfile
@@ -12,7 +13,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.core.files.base import File
 
-from tripper import Triplestore, RDF
+from tripper import Triplestore, RDF, EMMO
 from tripper.datadoc import (
     save_datadoc, store, told, TableDoc, search_iris, load_dict
 )
@@ -217,6 +218,21 @@ def process_csv_form(csv_data: str, ts: Triplestore):
             os.remove(temp_file_path)
 
 
+def normalize_name(name: str) -> str:
+    """ Converts camelCase or snake_case to space-separated words """
+    if name.startswith('EMMO_'):
+        return name
+    else:
+        # Handle upper case
+        name = re.sub(r'(?<=[A-Z])(?=[A-Z][a-z])', ' ', name)
+        # Handle camel case
+        name = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', name)
+        # Handle underscores
+        name = re.sub(r'_+', ' ', name)
+        # Capitalize first letters
+        return ' '.join(f'{w[0].upper()}{w[1:]}' for w in name.split())
+
+
 def substring_index(text: str, substring: str):
     try:
         i = text.index(substring)
@@ -235,10 +251,10 @@ def value_to_cell(value) -> dict:
             url = urlparse(value)
             if url.fragment:
                 attrs.update(title=value)
-                cell['text'] = url.fragment
+                cell['text'] = normalize_name(url.fragment)
             else:
                 cell['href'] = value
-                cell['text'] = Path(url.path).name
+                cell['text'] = normalize_name(Path(url.path).name)
 
         # otherwise put the value as text
         else:
@@ -261,8 +277,12 @@ def value_to_option(value) -> dict:
     cell = value_to_cell(value)
     if 'title' in cell['attrs_dict']:
         opt = dict(value=cell['attrs_dict']['title'], text=cell['text'])
-    else:
-        print(cell)
+    elif cell['href']:
+        opt = dict(value=cell['value'], text=cell['text'])
+    elif ':' in cell['value']:
+        p, n = cell['value'].split(':', 1)
+        if p:
+            opt = dict(value=cell['value'], text=f'{normalize_name(n)} ({p})')
     return opt
 
 
@@ -270,7 +290,7 @@ def triplestore_filters(context: dict = None) -> dict:
     """ Search distinct predicates in the triplestore """
     ts = get_triplestore()
 
-    filters = []
+    filters = {}
     selected_filters = set()
     rdf_type = None
 
@@ -278,12 +298,12 @@ def triplestore_filters(context: dict = None) -> dict:
         if item:
             option = value_to_option(item[0])
             if option:
-                filters.append(option)
+                filters[option['value']] = option
                 if item[0] == RDF.type:
                     rdf_type = option
 
     if rdf_type:
-        rdf_type['choices'] = triplestore_filter_choices(RDF.type, ts)
+        rdf_type['choices'] = triplestore_filter_choices(RDF.type, ts, True)
         selected_filters.add(RDF.type)
 
     app = get_setting('namespace')
@@ -293,7 +313,7 @@ def triplestore_filters(context: dict = None) -> dict:
             usr = context["user"]["email"]
     if usr and app:
         s = f'mailto:{usr}'
-        p = f'{app}datadoc-explore#filters'
+        p = f'{app}datadoc-explore#hasFilter'
 
         query = f'SELECT DISTINCT ?o WHERE {{ <{s}> <{p}> ?o . }}'
         for item in ts.query(query):
@@ -307,11 +327,20 @@ def triplestore_filters(context: dict = None) -> dict:
         for item in remove:
             filters.remove(item)
 
-    return {'filters': filters, 'selected': list(selected_filters)}
+    items = []
+    for i, item in enumerate(filters.values()):
+        item['id'] = f'filter{i+1}'
+        items.append(item)
+    selected = [filters[item]for item in selected_filters]
+
+    return {'items': items, 'selected': selected}
 
 
-def triplestore_filter_choices(predicate: str, ts: Triplestore = None) -> dict:
-    """ Search dictinct values for the given filter """
+def triplestore_filter_choices(
+        predicate: str,
+        ts: Triplestore = None,
+        norm: bool = False) -> dict:
+    """ Search distinct values for the given filter """
     if ts is None:
         ts = get_triplestore()
 
@@ -319,7 +348,11 @@ def triplestore_filter_choices(predicate: str, ts: Triplestore = None) -> dict:
     query = f'SELECT DISTINCT ?o WHERE {{ ?s <{predicate}> ?o . }}'
     for item in ts.query(query):
         if item:
-            choices.append(item[0])
+            if norm:
+                opt = value_to_option(item[0])
+            else:
+                opt = {'value': item[0], 'text': item[0]}
+            choices.append(opt)
 
     return choices
 

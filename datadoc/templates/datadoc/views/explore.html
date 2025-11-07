@@ -1,67 +1,129 @@
 {% extends datadoc_base_template %}
 
 {% block content %}
-<div class="container mt-4">
-  <form class="col-12 mb-3 mb-lg-0 me-lg-3">
-    <div class="input-group mb-3">
-      <input type="search" class="form-control" placeholder="Search..." name="query" id="input-query" value="{{ query }}">
-      <button class="btn btn-outline-secondary" type="submit" id="btn-search">
-        <i class="bi bi-search"></i>
-      </button>
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-3">
+      <div class="card">
+        <div class="card-header">
+          Filters
+        </div>
+        <div class="card-body">
+          <div class="btn-group btn-group-sm" role="group">
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Add
+              </button>
+              <ul class="dropdown-menu" style="max-height: 300px; overflow-y: auto;">
+                {% for item in filters.items %}
+                <li><button id="btn-{{ item.id }}" data-criteria="{{ item.value }}" type="button" class="dropdown-item" onclick="onAdd(this)">
+                  {{ item.text }}
+                </button></li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Remove
+              </button>
+              <ul class="dropdown-menu">
+                {% for item in filters.selected %}
+                <li><button type="button" class="dropdown-item" onclick="onRemove(this)">
+                  {{ item.text }}
+                </button></li>
+                {% endfor %}
+              </ul>
+            </div>
+            <button type="button" class="btn btn-light">Apply</button>
+          </div>            
+          <form id="search-filters">
+            {% for item in filters.selected %}
+              <div class="mt-1">
+                <label for="{{ item.id }}" class="form-label form-text">{{ item.text }}</label>
+                <select class="form-select form-select-sm" id="{{ item.id }}"
+                        name="type"
+                        data-criteria="{{ item.value }}">
+                  {% for choice in item.choices %}
+                    <option value="{{ choice.value }}">{{ choice.text }}</option>
+                  {% endfor %}      
+                </select>
+              </div>              
+            {% endfor %}
+          </form>
+        </div>
+      </div>
     </div>
-  </form>
-  {% if filters %}
-  {% for item in filters %}
-  <button type="button" class="btn btn-light" onclick="onSearchType('{{ item.value }}')">{{ item.text }}</button>
-  {% endfor %}
-  <!-- <select class="form-select" name="type">
-    {% for item in filters %}
-    <option value="{{ item.value }}">{{ item.text }}</option>
-    {% endfor %}
-  </select> -->
-  {% endif %}
-  {% if error %}
-  <div id="search-error">
-    <div style="margin-top: 10px; margin-bottom: 0px;"
-         role="alert"
-         class="alert alert-warning alert-dismissible fade show">
-      <strong>Error!</strong> {{ error }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="col-9" style="padding-left: 0px;">
+      <div class="card">
+        <div class="card-header">
+          Search results
+        </div>
+        <div class="card-body">
+
+          {% if error %}
+          <div id="search-error">
+            <div style="margin-top: 10px; margin-bottom: 0px;"
+                role="alert"
+                class="alert alert-warning alert-dismissible fade show">
+              <strong>Error!</strong> {{ error }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          </div>
+          {% elif query and table %}
+          <div id="search-result" class="mt-3">
+            <div class="text-nowrap" style="overflow-x: auto">
+              <table id="result" class="table table-sm">
+                <thead>
+                  <tr>{% for col in table.cols %}<th>{{ col }}</th>{% endfor %}</tr>
+                </thead>
+                <tbody>
+                  {% for row in table.rows %}
+                  <tr>{% for cell in row %}<td {{ cell.attrs|safe }}>{% if cell.href %}{% include 'datadoc/components/link.html' with data=cell %}{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% elif query %}
+          <div id="search-result-none">
+            <p>no results matched with your query</p>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
     </div>
   </div>
-  {% elif query and table %}
-  <div id="search-result" class="mt-3">
-    <div class="text-nowrap" style="overflow-x: auto">
-      <table id="result" class="table table-sm">
-        <thead>
-          <tr>{% for col in table.cols %}<th>{{ col }}</th>{% endfor %}</tr>
-        </thead>
-        <tbody>
-          {% for row in table.rows %}
-          <tr>{% for cell in row %}<td {{ cell.attrs|safe }}>{% if cell.href %}{% include 'datadoc/components/link.html' with data=cell %}{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+
+<div id="input-criteria" style="display:none">
+  <div class="mt-1">
+    <label for="{id}" class="form-label form-text">{label}</label>
+    <select class="form-select form-select-sm" id="{id}" name="criteria"
+            data-criteria="{criteria}">
+    </select>
   </div>
-  {% elif query %}
-  <div id="search-result-none">
-    <p>no results matched with your query</p>
-    <p>Tips for improving the results</p>
-    <ul>
-      <li>Please ensure that you have typed the search term correctly.</li>
-      <li>Try using more general terms to broaden your search.</li>
-      <li>Consider using synonyms or related terms to expand your search.</li>          
-    </ul>
-  </div>
-  {% endif %}
 </div>
+
+</div>
+
 {% endblock %}
 {% block scripts %}
 <script>
-  function onSearchType(value) {
-    $('#input-query').val(value);
-    $('#btn-search').click();
+
+  function onAdd(btn) {
+    let id = btn.id.split('-');
+    let html = $('#input-criteria').html().replaceAll('{id}', id[1]);
+    html = html.replace('{label}', $(btn).text().trim());
+    html = html.replace('{criteria}', $(btn).data('criteria'));
+    $('#search-filters').append(html);
   }
+
+  function onRemove(btn) {
+  }
+
+  function onApply() {
+  
+  }
+
 </script>
 {% endblock %}
