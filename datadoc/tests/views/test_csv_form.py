@@ -9,7 +9,7 @@ from django.http import JsonResponse
 class ProcessCSVTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.process_csv_url = reverse("process_csv")
+        self.process_csv_url = reverse("datadoc:process_csv")
 
     @patch("datadoc.views.get_triplestore")
     @patch("datadoc.views.process_csv_form")

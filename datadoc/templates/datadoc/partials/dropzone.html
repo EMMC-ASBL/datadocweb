@@ -1,92 +1,61 @@
-<style>
-  .dropzone {
-    width: 800px;
-    height: 250px;
-    border: 4px groove #aca7a7;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 50px auto;
-    padding: 20px;
-    text-align: center;
-    color: #888;
-    background-color: #ffffff;
-    transition: background-color 0.3s, border-color 0.3s;
-  }
 
-  .dropzone.dragover {
-    border-color: #6d6969;
-    background-color: #9b9999;
-  }
-
-  #upload-result {
-    text-align: center;
-    margin-top: 20px;
-    color: #888;
-  }
-</style>
-
-<form id="upload-form" hx-post="{% url 'datadoc:upload_files' %}" hx-target="#upload-result" hx-swap="innerHTML"
-  hx-push-url="false" enctype="multipart/form-data" method="POST">
+<form action="{% url 'datadoc:upload_files' %}" class="dropzone mb-3" id="files-dropzone">
   {% csrf_token %}
-  <div id="drop-zone" class="dropzone">
-    <h1><i class="bi bi-upload"></i></h1>
-    <p>Drop files here or click to upload</p>
-    <input type="file" name="files" id="file-input" hidden onchange="this.form.requestSubmit()">
-  </div>
 </form>
 
-<div id="upload-result"></div>
+<div id="results"></div>
 
-{% include 'datadoc/components/dialog.html' %}
+<div id="upload-result" style="display: none;">
+<div class="alert alert-{color} alert-dismissible fade show" role="alert" id="file-{uuid}">
+  <strong>{status}</strong> for file "{file}": {message}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+</div>
+
 {% block scripts %}
 <script>
-  const dropZone = document.getElementById('drop-zone');
-  const fileInput = document.getElementById('file-input');
-  const uploadForm = document.getElementById('upload-form');
-  const uploadResult = document.getElementById('upload-result');
+function showUploadResult(response, file) {
+  let html = $('#upload-result').html();
+  if (response.status_code == 200) {
+    html = html.replace('{status}', 'Success');
+    html = html.replace('{color}', 'success');
+  } else {
+    html = html.replace('{status}', 'Error');
+    html = html.replace('{color}', 'danger');
+  }
+  html = html.replace('{file}', file.name);
+  html = html.replace('{uuid}', file.upload.uuid);
+  html = html.replace('{message}', response.message);
+  $('#results').append(html);
+  if (response.status_code == 200) {
+    var fid = `#file-${file.upload.uuid}`;
+    window.setTimeout(() => { $(fid).remove(); }, 5000);
+  }
+}
 
-  uploadForm.addEventListener('submit', () => {
-    uploadResult.innerHTML = "<p>Uploading... Please wait..</p>";
-  });
-
-  dropZone.addEventListener('click', () => {
-    fileInput.click();
-  });
-
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-  });
-
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
-  });
-
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-
-    const files = e.dataTransfer.files;
-    const dataTransfer = new DataTransfer();
-
-    for (let i = 0; i < files.length; i++) {
-      dataTransfer.items.add(files[i]);
-    }
-
-    fileInput.files = dataTransfer.files;
-    fileInput.dispatchEvent(new Event('change'));
-    uploadForm.requestSubmit();
-  });
-
-  document.body.addEventListener('htmx:afterRequest', function (event) {
-    const status = event.detail.xhr.status;
-    const response = JSON.parse(event.detail.xhr.responseText);
-    uploadResult.innerHTML = "";
-    showDialog(response.message, response.status_code);
-  });
+Dropzone.options.filesDropzone = {
+  paramName: "files",
+  maxFilesize: 10, // MB
+  timeout: 1800000, // 30 minutes,
+  acceptedFiles: '.csv,.json,.yaml',
+  init: function() {
+    this.on("success", (file, response) => {
+      if (response) {
+        showUploadResult(response, file);
+      }
+      return file.previewElement.classList.add("dz-success");
+    });
+    this.on("error", (file, response) => {
+      if (response) {
+        showUploadResult(response, file);
+      }
+      return file.previewElement.classList.add("dz-error");
+    });
+    this.on("complete", (file) => {
+      this.removeFile(file);
+    });
+  }      
+};
 
 </script>
 {% endblock %}
