@@ -261,23 +261,67 @@ def value_to_option(value) -> dict:
     cell = value_to_cell(value)
     if 'title' in cell['attrs_dict']:
         opt = dict(value=cell['attrs_dict']['title'], text=cell['text'])
+    else:
+        print(cell)
     return opt
 
 
-def triplestore_filters() -> dict:
-    """ Search all distinct RDF.type in the triplestore """
+def triplestore_filters(context: dict = None) -> dict:
+    """ Search distinct predicates in the triplestore """
     ts = get_triplestore()
 
-    options = []
-    types = set()
-    for item in ts.objects(predicate=RDF.type):
-        if item not in types:
-            types.add(item)
-            option = value_to_option(item)
-            if option:
-                options.append(option)
+    filters = []
+    selected_filters = set()
+    rdf_type = None
 
-    return options
+    for item in ts.query('SELECT DISTINCT ?p WHERE { ?s ?p ?o . }'):
+        if item:
+            option = value_to_option(item[0])
+            if option:
+                filters.append(option)
+                if item[0] == RDF.type:
+                    rdf_type = option
+
+    if rdf_type:
+        rdf_type['choices'] = triplestore_filter_choices(RDF.type, ts)
+        selected_filters.add(RDF.type)
+
+    app = get_setting('namespace')
+    usr = ''
+    if context:
+        if 'user' in context:
+            usr = context["user"]["email"]
+    if usr and app:
+        s = f'mailto:{usr}'
+        p = f'{app}datadoc-explore#filters'
+
+        query = f'SELECT DISTINCT ?o WHERE {{ <{s}> <{p}> ?o . }}'
+        for item in ts.query(query):
+            if item:
+                selected_filters.add(item[0])
+
+        remove = []
+        for item in filters:
+            if item['value'] == p:
+                remove.append(item)
+        for item in remove:
+            filters.remove(item)
+
+    return {'filters': filters, 'selected': list(selected_filters)}
+
+
+def triplestore_filter_choices(predicate: str, ts: Triplestore = None) -> dict:
+    """ Search dictinct values for the given filter """
+    if ts is None:
+        ts = get_triplestore()
+
+    choices = []
+    query = f'SELECT DISTINCT ?o WHERE {{ ?s <{predicate}> ?o . }}'
+    for item in ts.query(query):
+        if item:
+            choices.append(item[0])
+
+    return choices
 
 
 def triplestore_search(query: str) -> dict:

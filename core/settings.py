@@ -104,7 +104,8 @@ DATADOCWEB = {
         "foaf": "http://xmlns.com/foaf/0.1/",
         "prov": "http://www.w3.org/ns/prov#",
         "pm": "https://www.ntnu.edu/physmet/data#"
-    }
+    },
+    "namespace": "https://www.ntnu.edu/physmet/"
 }
 
 # Password validation
