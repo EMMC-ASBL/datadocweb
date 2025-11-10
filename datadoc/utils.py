@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 
 from tripper import Triplestore, RDF
 from tripper.datadoc import (
-    save_datadoc, store, told, TableDoc, search_iris, load_dict
+    save_datadoc, store, told, TableDoc, search, acquire
 )
 from tripper.datadoc.dataset import get_prefixes
 
@@ -365,7 +365,10 @@ def triplestore_filters(context: dict, user: User = None) -> dict:
             rdf_type = value
         else:
             prefix, name = key.split('_', 1)
-            criterias[f'{prefix_iri[prefix]}{name}'] = value
+            if prefix in prefix_iri:
+                criterias[f'{prefix_iri[prefix]}{name}'] = value
+            else:
+                criterias[f'{prefix}:{name}'] = value
     context.update(search={'rdf_type': rdf_type, 'criterias': criterias})
 
     # search all filters
@@ -440,10 +443,12 @@ def triplestore_filter_choices(
 def triplestore_search(dtype: str, criterias: dict) -> dict:
     """ Search in the triplestore """
 
-    ts = get_triplestore()
-    iris = search_iris(ts, dtype, criterias)
+    print(dtype, criterias)
 
-    dicts = [load_dict(ts, iri) for iri in iris]
+    ts = get_triplestore()
+    iris = search(ts, dtype, criteria=criterias)
+
+    dicts = [acquire(ts, iris[i]) for i in range(min(10, len(iris)))]
     td = TableDoc.fromdicts(dicts)
 
     rows = []

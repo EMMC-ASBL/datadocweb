@@ -91,15 +91,14 @@ def explore(request: HttpRequest):
         rdf_type = ctx['search']['rdf_type']
         criterias = ctx['search']['criterias']
         if rdf_type or criterias:
-            ctx['table'] = triplestore_search(rdf_type, criterias)
             try:
                 ctx['table'] = triplestore_search(rdf_type, criterias)
             except Exception as ex:
-                doc = ex.__class__.__doc__.rstrip('.')
+                doc = ex.__class__.__doc__
                 if not doc:
                     doc = ex.__class__.__name__
                 err = str(ex).strip("'")
-                ctx['error'] = f'{doc}: "{err}".'
+                ctx['error'] = f'{doc.rstrip(".")}: "{err}".'
 
         return render(request, "datadoc/views/explore.html", ctx)
 
