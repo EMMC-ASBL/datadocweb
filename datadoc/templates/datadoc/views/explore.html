@@ -16,7 +16,9 @@
               </button>
               <ul class="dropdown-menu" style="max-height: 300px; overflow-y: auto;">
                 {% for item in filters.items %}
-                <li><button id="btn-{{ item.id }}" data-criteria="{{ item.value }}" type="button" class="dropdown-item" onclick="onAdd(this)">
+                <li><button id="btn_{{ item.name }}" type="button"
+                            class="dropdown-item" onclick="onAdd(this)"
+                            data-criteria="{{ item.value }}">
                   {{ item.text }}
                 </button></li>
                 {% endfor %}
@@ -26,25 +28,27 @@
               <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 Remove
               </button>
-              <ul class="dropdown-menu">
+              <ul class="dropdown-menu" id="menu-remove">
                 {% for item in filters.selected %}
-                <li><button type="button" class="dropdown-item" onclick="onRemove(this)">
+                <li><button id="btn_remove_{{ item.name }}" type="button"
+                            class="dropdown-item" onclick="onRemove(this)"
+                            data-criteria="{{ item.value }}">
                   {{ item.text }}
                 </button></li>
                 {% endfor %}
               </ul>
             </div>
-            <button type="button" class="btn btn-light">Apply</button>
+            <button type="button" class="btn btn-light" onclick="onApply(this)">Apply</button>
           </div>            
           <form id="search-filters">
+            {% csrf_token %}
             {% for item in filters.selected %}
               <div class="mt-1">
-                <label for="{{ item.id }}" class="form-label form-text">{{ item.text }}</label>
-                <select class="form-select form-select-sm" id="{{ item.id }}"
-                        name="type"
-                        data-criteria="{{ item.value }}">
+                <label for="{{ item.name }}" class="form-label form-text">{{ item.text }}</label>
+                <select class="form-select form-select-sm" id="{{ item.name }}"
+                        name="{{ item.name }}">
                   {% for choice in item.choices %}
-                    <option value="{{ choice.value }}">{{ choice.text }}</option>
+                    <option value="{{ choice.value }}" {% if choice.selected %}selected{% endif %}>{{ choice.text }}</option>
                   {% endfor %}      
                 </select>
               </div>              
@@ -69,8 +73,8 @@
               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
           </div>
-          {% elif query and table %}
-          <div id="search-result" class="mt-3">
+          {% elif table %}
+          <div id="search-result">
             <div class="text-nowrap" style="overflow-x: auto">
               <table id="result" class="table table-sm">
                 <thead>
@@ -98,10 +102,17 @@
 <div id="input-criteria" style="display:none">
   <div class="mt-1">
     <label for="{id}" class="form-label form-text">{label}</label>
-    <select class="form-select form-select-sm" id="{id}" name="criteria"
+    <select class="form-select form-select-sm" id="{id}" name="{id}"
             data-criteria="{criteria}">
     </select>
   </div>
+</div>
+
+<div id="button-remove" style="display:none">
+  <li><button id="btn_remove_{id}" type="button" class="dropdown-item"
+              onclick="onRemove(this)" data-criteria="{criteria}">
+    {label}
+  </button></li>
 </div>
 
 </div>
@@ -110,19 +121,84 @@
 {% block scripts %}
 <script>
 
-  function onAdd(btn) {
-    let id = btn.id.split('-');
-    let html = $('#input-criteria').html().replaceAll('{id}', id[1]);
-    html = html.replace('{label}', $(btn).text().trim());
-    html = html.replace('{criteria}', $(btn).data('criteria'));
-    $('#search-filters').append(html);
+  function getToken() {
+    let items = $('#search-filters').serializeArray(); 
+    let item = items.find(x => x.name == 'csrfmiddlewaretoken');
+    return item ? item.value : '';
   }
 
-  function onRemove(btn) {
+  function formatString(template, values) {
+    return template.replace(/{(\w+)}/g, (_, key) => values[key] ?? `{${key}}`);
+  }
+
+  function onAdd(btn) {
+    let select_id = btn.id.substring(4);
+    if ($(`#${select_id}`).length == 0) {
+      let text = $(btn).text().trim();
+      let criteria = $(btn).data('criteria');
+
+      let values = {id: select_id, label: text, criteria: criteria};
+      let html = $('#input-criteria').html();
+      $('#search-filters').append(formatString(html, values));
+
+      html = $('#button-remove').html();
+      $('#menu-remove').append(formatString(html, values));
+
+      $.ajax({
+        type: "POST",
+        url: "{% url 'datadoc:explore' %}",
+        headers: {'X-CSRFToken': getToken()},
+        dataType: 'json',
+        data: {name: select_id , criteria: criteria},
+        success: (response) => {
+          console.log(response)
+          if (response.choices) {
+            let opt = response.choices.map(x => {
+              return `<option value="${x.value}">${x.text}</option>`;
+            });
+            $(`#${response.name}`).empty().append(opt);
+          }
+        }
+      });
+    }
+  }
+
+  function onRemove(btn) {    
+    let select_id = btn.id.substring(11);
+
+    if ($(`#${select_id}`).length == 1) {
+
+      $(btn).parent().remove();
+      $(`#${select_id}`).parent().remove();
+
+      let criteria = $(btn).data('criteria');
+      $.ajax({
+        type: "DELETE",
+        url: `{% url 'datadoc:explore' %}?criteria=${encodeURIComponent(criteria)}`,
+        headers: {'X-CSRFToken': getToken()},
+        success: (response) => {
+          console.log(response)
+        }
+      });
+    }
   }
 
   function onApply() {
-  
+    let items = $('#search-filters').serializeArray();
+    let params = new URLSearchParams();
+    items.forEach(item => {
+      if (item.name != 'csrfmiddlewaretoken') {
+        if (item.value != '-- none --') {
+          params.set(item.name, item.value);
+        }
+      }
+    });
+    console.log(`{% url 'datadoc:explore' %}?${params.toString()}`);
+    if (params.size > 0) {
+      location.href = `{% url 'datadoc:explore' %}?${params.toString()}`;
+    } else {
+      location.href = "{% url 'datadoc:explore' %}";
+    }
   }
 
 </script>

@@ -105,7 +105,9 @@ DATADOCWEB = {
         "prov": "http://www.w3.org/ns/prov#",
         "pm": "https://www.ntnu.edu/physmet/data#"
     },
-    "namespace": "https://www.ntnu.edu/physmet/"
+    # IRI to store and retrieve configuration of the webapp in the triplestore.
+    # "config_base_iri": "http://example.org/datadocweb/"
+    "config_base_iri": "https://www.ntnu.edu/physmet/datadocweb/"
 }
 
 # Password validation

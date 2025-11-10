@@ -12,11 +12,13 @@ import requests
 from django.conf import settings
 from django.http import JsonResponse
 from django.core.files.base import File
+from django.contrib.auth.models import User
 
-from tripper import Triplestore, RDF, EMMO
+from tripper import Triplestore, RDF
 from tripper.datadoc import (
     save_datadoc, store, told, TableDoc, search_iris, load_dict
 )
+from tripper.datadoc.dataset import get_prefixes
 
 
 SUPPORTED_EXTENSIONS = {
@@ -233,6 +235,38 @@ def normalize_name(name: str) -> str:
         return ' '.join(f'{w[0].upper()}{w[1:]}' for w in name.split())
 
 
+def _split_iri(iri: str, sep: str):
+    p = iri.rfind(sep)
+    path = iri[0:p+1]
+    name = iri[p+1:]
+    return path, name
+
+
+def split_iri(iri: str, iri_prefix: dict = None):
+    """ Split IRI to (path, name, prefix) and "iri_prefix" is a dict
+        with key=iri, value=prefix.
+    """
+    path = ''
+    name = ''
+    prefix = ''
+    if '#' in iri:
+        path, name = _split_iri(iri, '#')
+    elif '/' in iri:
+        path, name = _split_iri(iri, '/')
+    elif ':' in iri:
+        prefix, name = iri.split(':', 1)
+
+    if prefix and name:
+        return ('', name, prefix)
+    elif path and name:
+        if iri_prefix:
+            if path not in iri_prefix:
+                iri_prefix[path] = f'prefix{len(iri_prefix)+1}'
+        return (path, name, iri_prefix[path] if iri_prefix else '')
+    else:
+        return (path, name, prefix)
+
+
 def substring_index(text: str, substring: str):
     try:
         i = text.index(substring)
@@ -241,24 +275,23 @@ def substring_index(text: str, substring: str):
     return i
 
 
-def value_to_cell(value) -> dict:
+def value_to_cell(value: str, header: str) -> dict:
     """ Return cell attributes for HTML tag TD """
     attrs = {}
     cell = {'value': value, 'text': '', 'href': '', 'attrs_dict': attrs}
     if isinstance(value, str):
+        cell['text'] = value
         # value starts with: http, https, ftp, file, ...
         if substring_index(value, '://') in [3, 4, 5]:
-            url = urlparse(value)
-            if url.fragment:
-                attrs.update(title=value)
-                cell['text'] = normalize_name(url.fragment)
-            else:
+            if 'download' in header:
+                url = urlparse(value)
                 cell['href'] = value
-                cell['text'] = normalize_name(Path(url.path).name)
-
-        # otherwise put the value as text
-        else:
-            cell['text'] = value
+                cell['text'] = Path(url.path).name
+            elif header == '@type':
+                path, name, prefix = split_iri(value)
+                if name:
+                    attrs['title'] = value
+                    cell['text'] = normalize_name(name)
 
     elif isinstance(value, float):
         cell['text'] = f'{value:g}'
@@ -271,75 +304,116 @@ def value_to_cell(value) -> dict:
     return cell
 
 
-def value_to_option(value) -> dict:
-    """ Return option attributes for HTML tag OPTION """
-    opt = None
-    cell = value_to_cell(value)
-    if 'title' in cell['attrs_dict']:
-        opt = dict(value=cell['attrs_dict']['title'], text=cell['text'])
-    elif cell['href']:
-        opt = dict(value=cell['value'], text=cell['text'])
-    elif ':' in cell['value']:
-        p, n = cell['value'].split(':', 1)
-        if p:
-            opt = dict(value=cell['value'], text=f'{normalize_name(n)} ({p})')
-    return opt
+def get_email_and_config(context: dict, user: User):
+    cfg = get_setting('config_base_iri')
+    usr = getattr(user, 'email', '')
+    if not usr:
+        if 'user' in context:
+            usr = context['user']['email']
+    return usr, cfg
 
 
-def triplestore_filters(context: dict = None) -> dict:
+def fetch_user_filters(ts: Triplestore, email: str, config: str) -> list:
+    """ Fetch user filters """
+    filters = []
+
+    # s = f'mailto:{email}'
+    # p = f'{config}explore#hasFilter'
+
+    # query = f'SELECT DISTINCT ?o WHERE {{ <{s}> <{p}> ?o . }}'
+    # for item in ts.query(query):
+    #     if item:
+    #         selected_filters.add(item[0])
+
+    # remove = []
+    # for item in filters:
+    #     if item['value'] == p:
+    #         remove.append(item)
+    # for item in remove:
+    #     filters.remove(item)
+
+    return filters
+
+
+def post_user_filter(ts: Triplestore, email: str, config: str, filter: str):
+    pass
+
+
+def delete_user_filter(ts: Triplestore, email: str, config: str, filter: str):
+    pass
+
+
+def triplestore_filters(context: dict, user: User = None) -> dict:
     """ Search distinct predicates in the triplestore """
+    # init the triplestore
     ts = get_triplestore()
 
-    filters = {}
-    selected_filters = set()
-    rdf_type = None
+    # get all prefixes and reverse the map
+    prefix_iri = get_prefixes()
+    iri_prefix = {}
+    for prefix, iri in prefix_iri.items():
+        iri_prefix[iri] = prefix
+    for prefix, iri in get_setting('prefix', {}).items():
+        iri_prefix[iri] = prefix
+        prefix_iri[prefix] = iri
 
+    # expand prefix for the query items
+    rdf_type = ''
+    criterias = {}
+    for key, value in context['query'].items():
+        if key == 'rdf_type':
+            rdf_type = value
+        else:
+            prefix, name = key.split('_', 1)
+            criterias[f'{prefix_iri[prefix]}{name}'] = value
+    context.update(search={'rdf_type': rdf_type, 'criterias': criterias})
+
+    # search all filters
+    filters = {}
     for item in ts.query('SELECT DISTINCT ?p WHERE { ?s ?p ?o . }'):
         if item:
-            option = value_to_option(item[0])
-            if option:
-                filters[option['value']] = option
-                if item[0] == RDF.type:
-                    rdf_type = option
+            iri = item[0]
+            _, name, prefix = split_iri(iri, iri_prefix)
+            if name and prefix:
+                filters[iri] = dict(
+                    value=iri,
+                    text=normalize_name(name),
+                    name=f'{prefix}_{name}'
+                )
 
-    if rdf_type:
-        rdf_type['choices'] = triplestore_filter_choices(RDF.type, ts, True)
-        selected_filters.add(RDF.type)
+    # a list of pre-selected filters
+    selected = []
 
-    app = get_setting('namespace')
-    usr = ''
-    if context:
-        if 'user' in context:
-            usr = context["user"]["email"]
-    if usr and app:
-        s = f'mailto:{usr}'
-        p = f'{app}datadoc-explore#hasFilter'
+    # init filter on "type"
+    if RDF.type in filters:
+        choices = triplestore_filter_choices(RDF.type, rdf_type, ts, True)
+        filters[RDF.type]['choices'] = choices
+        selected.append(filters[RDF.type])
 
-        query = f'SELECT DISTINCT ?o WHERE {{ <{s}> <{p}> ?o . }}'
-        for item in ts.query(query):
-            if item:
-                selected_filters.add(item[0])
+    # add the selected filters from the query
+    for iri, value in criterias.items():
+        if iri in filters:
+            choices = triplestore_filter_choices(iri, value, ts, False)
+            filters[iri]['choices'] = choices
+            selected.append(filters[iri])
 
-        remove = []
-        for item in filters:
-            if item['value'] == p:
-                remove.append(item)
-        for item in remove:
-            filters.remove(item)
+    # fetch the filters that have been previoulsy selected by the user
+    email, config = get_email_and_config(context, user)
+    if email and config:
+        for item in fetch_user_filters(ts, email, config):
+            if item in filters:
+                selected.append(filters[item])
 
-    items = []
-    for i, item in enumerate(filters.values()):
-        item['id'] = f'filter{i+1}'
-        items.append(item)
-    selected = [filters[item]for item in selected_filters]
-
-    return {'items': items, 'selected': selected}
+    # update the context for rendering the page
+    items = list(filters.values())
+    context.update(filters={'items': items, 'selected': selected})
 
 
 def triplestore_filter_choices(
         predicate: str,
+        selection: str = '',
         ts: Triplestore = None,
-        norm: bool = False) -> dict:
+        norm: bool = False) -> list:
     """ Search distinct values for the given filter """
     if ts is None:
         ts = get_triplestore()
@@ -348,26 +422,33 @@ def triplestore_filter_choices(
     query = f'SELECT DISTINCT ?o WHERE {{ ?s <{predicate}> ?o . }}'
     for item in ts.query(query):
         if item:
+            value = item[0]
+            opt = {'value': value, 'text': value, 'selected': ''}
             if norm:
-                opt = value_to_option(item[0])
-            else:
-                opt = {'value': item[0], 'text': item[0]}
+                _, name, _ = split_iri(value)
+                opt['text'] = normalize_name(name)
+            if selection:
+                if selection == value:
+                    opt['selected'] = 'selected'
             choices.append(opt)
 
+    if choices:
+        choices.insert(0, {'value': '-- none --', 'text': 'Select...'})
     return choices
 
 
-def triplestore_search(query: str) -> dict:
+def triplestore_search(dtype: str, criterias: dict) -> dict:
     """ Search in the triplestore """
+
     ts = get_triplestore()
-    iris = search_iris(ts, query)
+    iris = search_iris(ts, dtype, criterias)
 
     dicts = [load_dict(ts, iri) for iri in iris]
     td = TableDoc.fromdicts(dicts)
 
     rows = []
     for row in td.data:
-        newrow = [value_to_cell(value) for value in row]
+        newrow = [value_to_cell(v, h) for v, h in zip(row, td.header)]
         rows.append(newrow)
 
     result = {
