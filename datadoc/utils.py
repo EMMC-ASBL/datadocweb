@@ -220,6 +220,14 @@ def process_csv_form(csv_data: str, ts: Triplestore):
             os.remove(temp_file_path)
 
 
+def _convert(value, dtype, default=None):
+    try:
+        v = dtype(value)
+    except Exception:
+        v = default
+    return v
+
+
 def normalize_name(name: str) -> str:
     """ Converts camelCase or snake_case to space-separated words """
     if name.startswith('EMMO_'):
@@ -297,7 +305,7 @@ def value_to_cell(value: str, header: str) -> dict:
         cell['text'] = f'{value:g}'
 
     else:
-        cell['text'] = f'{value}'
+        cell['text'] = '' if value is None else f'{value}'
 
     cell['attrs'] = ' '.join([f'{k}="{v}"' for k, v in attrs.items()])
 
@@ -363,7 +371,7 @@ def triplestore_filters(context: dict, user: User = None) -> dict:
     for key, value in context['query'].items():
         if key == 'rdf_type':
             rdf_type = value
-        else:
+        elif '_' in key:
             prefix, name = key.split('_', 1)
             if prefix in prefix_iri:
                 criterias[f'{prefix_iri[prefix]}{name}'] = value
@@ -436,19 +444,55 @@ def triplestore_filter_choices(
             choices.append(opt)
 
     if choices:
-        choices.insert(0, {'value': '-- none --', 'text': 'Select...'})
+        choices.insert(0, {'value': '--- none ---', 'text': 'Select...'})
     return choices
 
 
-def triplestore_search(dtype: str, criterias: dict) -> dict:
+def get_pagination(nrow, page, size=10, nmax=10):
+    """ Compute the pagination """
+    size = _convert(size, int, 10)
+    npage = (nrow // size)
+    if nrow % size > 0:
+        npage += 1
+    page = min(npage, max(1, _convert(page, int, 1)))
+
+    i = nmax // 2
+    m = npage // 2
+    a = max(1, page - i)
+    b = min(page + i, npage)
+    if b - a < nmax:
+        if page < m:
+            b = min(nmax, npage)
+        else:
+            a = max(1, npage - nmax + 1)
+    else:
+        a += 1
+    p = list(range(a, b + 1))
+    pages = {
+        'nrow': nrow,
+        'active': page,
+        'npage': npage,
+        'prev': 'disabled' if p[0] == 1 else '',
+        'next': 'disabled' if p[-1] == npage else '',
+        'numbers': p,
+        'start': (page - 1) * size,
+        'stop': min(page * size, nrow),
+        'page_size': size
+    }
+    return pages
+
+
+def triplestore_search(dtype: str, criterias: dict,
+                       page: int = 1, size: int = 10) -> dict:
     """ Search in the triplestore """
-
-    print(dtype, criterias)
-
     ts = get_triplestore()
     iris = search(ts, dtype, criteria=criterias)
+    pages = get_pagination(len(iris), page, size)
 
-    dicts = [acquire(ts, iris[i]) for i in range(min(10, len(iris)))]
+    start = pages['start']
+    stop = pages['stop']
+
+    dicts = [acquire(ts, iris[i]) for i in range(start, stop)]
     td = TableDoc.fromdicts(dicts)
 
     rows = []
@@ -456,10 +500,16 @@ def triplestore_search(dtype: str, criterias: dict) -> dict:
         newrow = [value_to_cell(v, h) for v, h in zip(row, td.header)]
         rows.append(newrow)
 
+    columns = []
+    for header in td.header:
+        key = header.strip('@')
+        path, name, prefix = split_iri(key)
+        columns.append(normalize_name(name if name else key))
+
     result = {
-        'cols': td.header,
-        'rows': rows,
-        'prefix': {k: f'{v}' for k, v in ts.namespaces.items()}
+        'table': {'cols': columns, 'rows': rows},
+        'prefix': {k: f'{v}' for k, v in ts.namespaces.items()},
+        'pages': pages
     }
 
     return result

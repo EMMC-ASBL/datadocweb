@@ -38,6 +38,7 @@
                 {% endfor %}
               </ul>
             </div>
+            <button type="button" class="btn btn-light" onclick="onReset()">Reset</button>
             <button type="button" class="btn btn-light" onclick="onApply(this)">Apply</button>
           </div>            
           <form id="search-filters">
@@ -61,9 +62,11 @@
       <div class="card">
         <div class="card-header">
           Search results
+          <div id="spinner" class="spinner-border spinner-border-sm" role="status" style="display:none">
+            <span class="visually-hidden">Loading...</span>
+          </div>
         </div>
         <div class="card-body">
-
           {% if error %}
           <div id="search-error">
             <div style="margin-top: 10px; margin-bottom: 0px;"
@@ -75,7 +78,7 @@
           </div>
           {% elif table %}
           <div id="search-result">
-            <div class="text-nowrap" style="overflow-x: auto">
+            <div class="text-nowrap mb-3" style="overflow-x: auto">
               <table id="result" class="table table-bordered table-sm">
                 <thead>
                   <tr>{% for col in table.cols %}<th>{{ col }}</th>{% endfor %}</tr>
@@ -87,13 +90,13 @@
                 </tbody>
               </table>
             </div>
+            {% include 'datadoc/components/pagination.html' %}
           </div>
           {% elif query %}
           <div id="search-result-none">
             <p>no results matched with your query</p>
           </div>
           {% endif %}
-
         </div>
       </div>
     </div>
@@ -183,22 +186,44 @@
     }
   }
 
-  function onApply() {
+  function onApply(page) {
+    $('#spinner').show();
     let items = $('#search-filters').serializeArray();
     let params = new URLSearchParams();
     items.forEach(item => {
       if (item.name != 'csrfmiddlewaretoken') {
-        if (item.value != '-- none --') {
+        if (item.value != '--- none ---') {
           params.set(item.name, item.value);
         }
       }
     });
-    console.log(`{% url 'datadoc:explore' %}?${params.toString()}`);
+    if (page) {
+      params.set('page', page);
+    }
     if (params.size > 0) {
       location.href = `{% url 'datadoc:explore' %}?${params.toString()}`;
     } else {
       location.href = "{% url 'datadoc:explore' %}";
     }
+  }
+
+  function onReset() {
+    $('#spinner').show();
+    location.href = "{% url 'datadoc:explore' %}";
+  }
+
+  function onPage(num) {
+    onApply(num);
+  }
+
+  function onPrevPage() {
+    let page = Number($('.page-item.active').first().text().trim());
+    onPage(page - 1);
+  }
+
+  function onNextPage() {
+    let page = Number($('.page-item.active').first().text().trim());
+    onPage(page + 1);
   }
 
 </script>

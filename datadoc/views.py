@@ -92,7 +92,11 @@ def explore(request: HttpRequest):
         criterias = ctx['search']['criterias']
         if rdf_type or criterias:
             try:
-                ctx['table'] = triplestore_search(rdf_type, criterias)
+                p = request.GET.get('page', '1')
+                s = request.GET.get('size', '10')
+                result = triplestore_search(rdf_type, criterias, p, s)
+                if result:
+                    ctx.update(result)
             except Exception as ex:
                 doc = ex.__class__.__doc__
                 if not doc:
