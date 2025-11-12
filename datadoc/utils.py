@@ -25,7 +25,7 @@ from tripper.datadoc.dataset import get_prefixes
 
 
 SUPPORTED_EXTENSIONS = {
-    "csv": (".csv"),
+    "csv": (".csv",),
     "xls": (".xls", ".xlsx"),
     "json": (".json", ".jsonld"),
     "yaml": (".yaml", ".yml"),
