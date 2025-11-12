@@ -3,7 +3,15 @@
   {% csrf_token %}
 </form>
 
-<div id="results"></div>
+<div class="alert alert-info" role="alert">
+  For Excel files, only worksheets where cell A1 contains <strong>@id</strong>
+  will be uploaded. The first row must define the column headers, and headers
+  must not end with a number (e.g. <strong>@type.1</strong> is not allowed).
+</div>
+
+<div id="results">
+
+</div>
 
 <div id="upload-result" style="display: none;">
 <div class="alert alert-{color} alert-dismissible fade show" role="alert" id="file-{uuid}">
@@ -14,19 +22,48 @@
 
 {% block scripts %}
 <script>
-function showUploadResult(response, file) {
-  let html = $('#upload-result').html();
-  if (response.status_code == 200) {
-    html = html.replace('{status}', 'Success');
-    html = html.replace('{color}', 'success');
-  } else {
-    html = html.replace('{status}', 'Error');
-    html = html.replace('{color}', 'danger');
+
+function formatString(template, values) {
+  return template.replace(/{(\w+)}/g, (_, key) => values[key] ?? `{${key}}`);
+}
+
+function getAndReplace(htmlId, values, appendTo) {
+  let html = $(htmlId).html();
+  let newhtml = formatString(html, values);
+  if (appendTo) {
+    $(appendTo).append(newhtml);
   }
-  html = html.replace('{file}', file.name);
-  html = html.replace('{uuid}', file.upload.uuid);
-  html = html.replace('{message}', response.message);
-  $('#results').append(html);
+  return newhtml;
+}
+
+function showUploadResult(response, file) {
+  let values = {
+    status: 'Error',
+    color: 'danger',
+    file: file.name,
+    uuid: file.upload.uuid,
+    message: response.message
+  };
+  if (response.status_code == 200) {
+    values.status = 'Success';
+    values.color = 'success';
+  }
+  if (Array.isArray(response.message)) {
+    let items = response.message;
+    let msg = '';
+    let ul = '';
+    items.forEach(item => {
+      if (item.startsWith('- ')) {
+        ul += `<li>${item.substring(2)}</li>`;
+      } else {
+        msg += item;
+      }
+    });
+    values.message = ul ? `${msg}<ul>${ul}</ul>` : msg;
+  }
+
+  getAndReplace('#upload-result', values, '#results');
+
   if (response.status_code == 200) {
     var fid = `#file-${file.upload.uuid}`;
     window.setTimeout(() => { $(fid).remove(); }, 5000);
@@ -37,7 +74,7 @@ Dropzone.options.filesDropzone = {
   paramName: "files",
   maxFilesize: 10, // MB
   timeout: 1800000, // 30 minutes,
-  acceptedFiles: '.csv,.json,.yaml',
+  acceptedFiles: '.xlsx,.csv,.json,.yaml',
   init: function() {
     this.on("success", (file, response) => {
       if (response) {

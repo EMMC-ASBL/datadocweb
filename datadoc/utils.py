@@ -9,6 +9,9 @@ import tempfile
 import json
 import requests
 
+import pandas as pd
+from openpyxl.worksheet.worksheet import Worksheet
+
 from django.conf import settings
 from django.http import JsonResponse
 from django.core.files.base import File
@@ -22,7 +25,8 @@ from tripper.datadoc.dataset import get_prefixes
 
 
 SUPPORTED_EXTENSIONS = {
-    "spreadsheet": (".xls", ".xlsx", ".csv"),
+    "csv": (".csv"),
+    "xls": (".xls", ".xlsx"),
     "json": (".json", ".jsonld"),
     "yaml": (".yaml", ".yml"),
 }
@@ -113,10 +117,123 @@ def write_json(
         return json_response("Exception", str(ex))
 
 
-def handle_spreadsheet(uploaded_file: File, ts: Triplestore) -> JsonResponse:
-    """Upload a spreadsheet file"""
+def endswith_number(text: str):
+    """ Returns True if the text ends with ".{number}" like "@type.1" """
+    if isinstance(text, list):
+        return [endswith_number(item) for item in text]
+    elif isinstance(text, str):
+        p = text.rfind('.')
+        try:
+            i = int(text[p+1:])
+        except Exception:
+            i = None
+        return i is not None
+    else:
+        return False
 
-    return process_with_temp_file(uploaded_file, "wb", write_csv, ts)
+
+def read_header(name: str, sheet: Worksheet, sheets: dict) -> list:
+    """ Returns a list of column name if the sheet can be exported to csv
+
+        Do not accept column like "@type.1" or "@type.2"
+    """
+    answer = False
+
+    try:
+        columns = [f'{cell.value}' for cell in sheet[1]]
+    except Exception:
+        columns = []
+    numbers = endswith_number(columns)
+    is_number = [col for col, num in zip(columns, numbers) if num]
+
+    if columns:
+        if columns[0] == '@id':
+            if is_number:
+                sheets[name] = {'error': is_number}
+            else:
+                answer = True
+
+    return columns if answer else []
+
+
+def excel_to_csv(path: Path, workdir: Path = None):
+    """ Read an Excel file and write each worksheet in a csv file """
+    sheets = {}
+
+    print(path, workdir)
+    with pd.ExcelFile(path) as xls:
+        for sheet_name in xls.sheet_names:
+            sheets[sheet_name] = {}
+            columns = read_header(sheet_name, xls.book[sheet_name], sheets)
+            if columns:
+                df = xls.parse(sheet_name)
+                header = f'{",".join(columns)}\n'
+
+                if workdir is None:
+                    csv_file = path.parent / f"{path.stem}-{sheet_name}.csv"
+                else:
+                    csv_file = workdir / f"{sheet_name}.csv"
+
+                with csv_file.open('wb') as fil:
+                    fil.write(header.encode())
+                    df.to_csv(fil, index=False, header=False)
+
+                sheets[sheet_name] = {'path': csv_file}
+
+    return sheets
+
+
+def write_xls(
+    path: str, ts: Triplestore, headers: Optional[dict] = None
+) -> JsonResponse:
+    """Document data in Excel format (xlsx) """
+
+    filename = Path(path).name
+    success = []
+    errors = []
+
+    with tempfile.TemporaryDirectory() as workdir:
+        try:
+            sheets = excel_to_csv(path, Path(workdir))
+        except Exception as ex:
+            sheets = {}
+            errors.append(f'Cannot read Excel file "{filename}": {ex}')
+
+        for sheet, data in sheets.items():
+            if 'error' in data:
+                col = ', '.join([f'"{c}"' for c in data["error"]])
+                s = '' if len(data["error"]) == 1 else 's'
+                err = f'- Sheet "{sheet}" bad column name{s}: {col}.'
+                errors.append(err)
+
+        if not errors:
+            for sheet, data in sheets.items():
+                if 'path' in data:
+                    try:
+                        td = TableDoc.parse_csv(data['path'])
+                        td.save(ts)
+                        success.append(sheet)
+                    except Exception as ex:
+                        errors.append(f'- Sheet "{sheet}" error {ex}')
+
+    if errors:
+        return json_response('Error', errors)
+    elif success:
+        msg = f"File has populated the Graph (data from sheets {success})."
+        return json_response("Success", msg)
+    else:
+        msg = f'Nothing uploaded from file "{filename}".'
+        return json_response('Error', msg)
+
+
+def handle_csv(uploaded_file: File, ts: Triplestore) -> JsonResponse:
+    """Upload a csv file"""
+    return process_with_temp_file(uploaded_file, write_csv, ts)
+
+
+def handle_xls(uploaded_file: File, ts: Triplestore) -> JsonResponse:
+    """Upload a Excel file"""
+    return process_with_temp_file(uploaded_file, write_xls, ts)
 
 
 def handle_json(uploaded_file: File, ts: Triplestore) -> JsonResponse:
@@ -136,15 +253,17 @@ def handle_json(uploaded_file: File, ts: Triplestore) -> JsonResponse:
 def handle_yaml(uploaded_file: File, ts: Triplestore) -> JsonResponse:
     """Upload a YAML file"""
 
-    return process_with_temp_file(uploaded_file, "wb", write_yaml, ts)
+    return process_with_temp_file(uploaded_file, write_yaml, ts)
 
 
 def handle_file(uploaded_file: File, ts: Triplestore) -> JsonResponse:
     """Update a file to the triplestore"""
     try:
         filetype = get_filetype(uploaded_file.name)
-        if filetype == "spreadsheet":
-            return handle_spreadsheet(uploaded_file, ts)
+        if filetype == "csv":
+            return handle_csv(uploaded_file, ts)
+        elif filetype == "xls":
+            return handle_xls(uploaded_file, ts)
         elif filetype == "json":
             return handle_json(uploaded_file, ts)
         elif filetype == "yaml":
@@ -160,7 +279,7 @@ def handle_file_url(url: str, ts: Triplestore) -> JsonResponse:
     """Update a file from url to the triplestore"""
     try:
         filetype = get_filetype(url)
-        if filetype == "spreadsheet":
+        if filetype == "csv":
             return write_csv(url, ts)
         elif filetype == "json":
             return write_json(url, ts)
@@ -173,32 +292,36 @@ def handle_file_url(url: str, ts: Triplestore) -> JsonResponse:
         return json_response("Exception", str(ex))
 
 
-def save_uploaded_file_to_temp(uploaded_file: File, mode: str = "wb"):
+def save_uploaded_file_to_temp(uploaded_file: File) -> Path:
     """Save file content to temp file"""
-    file_extension = os.path.splitext(uploaded_file.name)[1]
+    file_extension = Path(uploaded_file.name).suffix
+    file_path = None
     with tempfile.NamedTemporaryFile(
-        delete=False, suffix=file_extension, mode=mode
+        delete=False, suffix=file_extension, mode="wb"
     ) as temp_file:
         for chunk in uploaded_file.chunks():
             temp_file.write(chunk)
             temp_file.flush()
             os.fsync(temp_file.fileno())
-        return temp_file.name
+        file_path = Path(temp_file.name)
+    return file_path
 
 
 def process_with_temp_file(
-    uploaded_file: File, mode: str, processing_func: Callable, ts: Triplestore
+    uploaded_file: File, processing_func: Callable, ts: Triplestore
 ):
     """Upload a temporary file"""
     temp_file_path = None
     try:
-        temp_file_path = save_uploaded_file_to_temp(uploaded_file, mode)
-        return processing_func(temp_file_path, ts)
+        temp_file_path = save_uploaded_file_to_temp(uploaded_file)
+        response = processing_func(temp_file_path, ts)
     except Exception as e:
-        return json_response("Exception", str(e))
-    finally:
-        if temp_file_path and os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+        response = json_response("Exception", str(e))
+
+    if temp_file_path and temp_file_path.exists():
+        os.remove(temp_file_path)
+
+    return response
 
 
 def process_csv_form(csv_data: str, ts: Triplestore):
@@ -208,16 +331,17 @@ def process_csv_form(csv_data: str, ts: Triplestore):
             delete=False, mode="w", newline=""
         ) as temp_file:
             temp_file.write(csv_data)
-            temp_file_path = temp_file.name
-            temp_file.close()
-        return write_csv(temp_file_path, ts)
+            temp_file_path = Path(temp_file.name)
+
+        response = write_csv(temp_file_path, ts)
 
     except Exception as e:
-        return json_response("Exception", str(e))
+        response = json_response("Exception", str(e))
 
-    finally:
-        if temp_file_path and os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+    if temp_file_path and temp_file_path.exists():
+        os.remove(temp_file_path)
+
+    return response
 
 
 def _convert(value, dtype, default=None):
