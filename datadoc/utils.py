@@ -219,7 +219,9 @@ def write_xls(
     if errors:
         return json_response('Error', errors)
     elif success:
-        msg = f"File has populated the Graph (data from sheets {success})."
+        ws = ', '.join([f'"{item}"' for item in success])
+        s = '' if len(success) == 1 else 's'
+        msg = f"File has populated the Graph (data from sheet{s}: {ws})."
         return json_response("Success", msg)
     else:
         msg = f'Nothing uploaded from file "{filename}".'
