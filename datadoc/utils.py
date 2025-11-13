@@ -74,6 +74,12 @@ def json_response(status: str, message: str = "", status_code: int = None):
         "message": message,
         "status_code": resolved_status_code,
     }
+    if isinstance(message, str):
+        content['message'] = message.strip('<>')
+
+    if (resolved_status_code >= 400) & (len(content['message']) == 0):
+        content['message'] = 'sorry unknown error.'
+
     return JsonResponse(content, status=resolved_status_code)
 
 

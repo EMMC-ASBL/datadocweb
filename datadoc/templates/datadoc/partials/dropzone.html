@@ -37,6 +37,9 @@ function getAndReplace(htmlId, values, appendTo) {
 }
 
 function showUploadResult(response, file) {
+  console.log(file.name);
+  console.log(response);
+
   let values = {
     status: 'Error',
     color: 'danger',
@@ -49,10 +52,9 @@ function showUploadResult(response, file) {
     values.color = 'success';
   }
   if (Array.isArray(response.message)) {
-    let items = response.message;
     let msg = '';
     let ul = '';
-    items.forEach(item => {
+    response.message.forEach(item => {
       if (item.startsWith('- ')) {
         ul += `<li>${item.substring(2)}</li>`;
       } else {

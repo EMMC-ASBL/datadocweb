@@ -134,6 +134,15 @@
     return template.replace(/{(\w+)}/g, (_, key) => values[key] ?? `{${key}}`);
   }
 
+  function getAndReplace(htmlId, values, appendTo) {
+    let html = $(htmlId).html();
+    let newhtml = formatString(html, values);
+    if (appendTo) {
+      $(appendTo).append(newhtml);
+    }
+    return newhtml;
+  }  
+
   function onAdd(btn) {
     let select_id = btn.id.substring(4);
     if ($(`#${select_id}`).length == 0) {
@@ -141,11 +150,8 @@
       let criteria = $(btn).data('criteria');
 
       let values = {id: select_id, label: text, criteria: criteria};
-      let html = $('#input-criteria').html();
-      $('#search-filters').append(formatString(html, values));
-
-      html = $('#button-remove').html();
-      $('#menu-remove').append(formatString(html, values));
+      getAndReplace('#input-criteria', values, '#search-filters');
+      getAndReplace('#button-remove', values, '#menu-remove');
 
       $.ajax({
         type: "POST",
