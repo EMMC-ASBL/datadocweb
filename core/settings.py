@@ -105,9 +105,16 @@ DATADOCWEB = {
         "prov": "http://www.w3.org/ns/prov#",
         "pm": "https://www.ntnu.edu/physmet/data#"
     },
-    # IRI to store and retrieve configuration of the webapp in the triplestore.
+    # ---
+    # - IRI to store and retrieve configuration of the webapp in the
+    #   triplestore.
     # "config_base_iri": "http://example.org/datadocweb/"
-    "config_base_iri": "https://www.ntnu.edu/physmet/datadocweb/"
+    # ---
+    # - fake a user, option only available when DEBUG == True
+    # "fake_user": {
+    #     "name": "Hello World",
+    #     "email": "hello.world@example.org"
+    # }
 }
 
 # Password validation

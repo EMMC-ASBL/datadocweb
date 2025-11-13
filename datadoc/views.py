@@ -3,6 +3,7 @@
 from pathlib import Path
 import mimetypes
 
+from django.conf import settings
 from django.apps import apps
 from django.shortcuts import render
 from django.http import FileResponse, Http404, JsonResponse, HttpRequest
@@ -18,7 +19,7 @@ from .utils import (
     get_setting,
     triplestore_search,
     triplestore_filters,
-    triplestore_filter_choices
+    update_user_filter
 )
 
 
@@ -33,6 +34,10 @@ def default_context(request: HttpRequest):
     for app in apps.get_app_configs():
         if app.name in app_names:
             app.update_context(request, ctx)
+    if settings.DEBUG:
+        usr = get_setting('fake_user', None)
+        if isinstance(usr, dict):
+            ctx['user'] = usr
     return ctx
 
 
@@ -107,18 +112,18 @@ def explore(request: HttpRequest):
         return render(request, "datadoc/views/explore.html", ctx)
 
     elif request.method == 'POST':
-        print(request.POST)
         name = request.POST.get('name', '')
         criteria = request.POST.get('criteria', '')
-        choices = triplestore_filter_choices(criteria)
+        choices = update_user_filter(ctx, request.user, criteria, 'POST')
         data = {'name': name, 'choices': choices}
         return JsonResponse(data)
 
     elif request.method == 'DELETE':
-        print(request.GET)
+        data = {'status': 'nothing to delete'}
         criteria = request.GET.get('criteria', '')
-        # choices = triplestore_filter_choices(criteria)
-        data = {'status': 'deleted'}
+        if criteria:
+            update_user_filter(ctx, request.user, criteria, 'DELETE')
+            data = {'status': 'deleted'}
         return JsonResponse(data)
 
 

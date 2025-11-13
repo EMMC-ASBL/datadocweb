@@ -1,6 +1,6 @@
 """Util module for datadoc and Django"""
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Literal
 import os
 import re
 from pathlib import Path
@@ -445,7 +445,7 @@ def value_to_cell(value: str, header: str) -> dict:
 
 
 def get_email_and_config(context: dict, user: User):
-    cfg = get_setting('config_base_iri')
+    cfg = get_setting('config_base_iri').rstrip('/')
     usr = getattr(user, 'email', '')
     if not usr:
         if 'user' in context:
@@ -455,38 +455,53 @@ def get_email_and_config(context: dict, user: User):
 
 def fetch_user_filters(ts: Triplestore, email: str, config: str) -> list:
     """ Fetch user filters """
-    filters = []
+    filters = set()
 
-    # s = f'mailto:{email}'
-    # p = f'{config}explore#hasFilter'
+    s = f'{config}/users/{email}'
+    p = f'{config}/explore#hasFilter'
 
-    # query = f'SELECT DISTINCT ?o WHERE {{ <{s}> <{p}> ?o . }}'
-    # for item in ts.query(query):
-    #     if item:
-    #         selected_filters.add(item[0])
+    query = f'SELECT DISTINCT ?o WHERE {{ <{s}> <{p}> ?o . }}'
+    for item in ts.query(query):
+        if item:
+            filters.add(item[0])
 
-    # remove = []
-    # for item in filters:
-    #     if item['value'] == p:
-    #         remove.append(item)
-    # for item in remove:
-    #     filters.remove(item)
-
-    return filters
+    return sorted(filters)
 
 
-def post_user_filter(ts: Triplestore, email: str, config: str, filter: str):
-    pass
+def update_user_filter(context: dict, user: User, criteria: str,
+                       method: Literal['POST', 'DELETE'] = 'POST'):
+    """ Add or remove a filter for the user """
+    # init the triplestore
+    ts = get_triplestore()
 
+    # get user email and base IRI for the datadoc config
+    email, config = get_email_and_config(context, user)
 
-def delete_user_filter(ts: Triplestore, email: str, config: str, filter: str):
-    pass
+    # add or remove filter in the triple store
+    if email and config:
+        triple = (
+            f'{config}/users/{email}',
+            f'{config}/explore#hasFilter',
+            criteria
+        )
+        if method == 'POST':
+            ts.add(triple)
+        if method == 'DELETE':
+            ts.remove(triple=triple)
+
+    if method == 'POST':
+        return triplestore_filter_choices(criteria, '', ts, False)
 
 
 def triplestore_filters(context: dict, user: User = None) -> dict:
     """ Search distinct predicates in the triplestore """
     # init the triplestore
     ts = get_triplestore()
+    # get user email and base IRI for the datadoc config
+    email, config = get_email_and_config(context, user)
+
+    def is_config(iri: str) -> bool:
+        return iri.startswith(config) if config else False
 
     # get all prefixes and reverse the map
     prefix_iri = get_prefixes()
@@ -515,41 +530,40 @@ def triplestore_filters(context: dict, user: User = None) -> dict:
     filters = {}
     for item in ts.query('SELECT DISTINCT ?p WHERE { ?s ?p ?o . }'):
         if item:
-            iri = item[0]
-            _, name, prefix = split_iri(iri, iri_prefix)
-            if name and prefix:
-                filters[iri] = dict(
-                    value=iri,
-                    text=normalize_name(name),
-                    name=f'{prefix}_{name}'
-                )
+            if not is_config(item[0]):
+                iri = item[0]
+                _, name, prefix = split_iri(iri, iri_prefix)
+                if name and prefix:
+                    filters[iri] = dict(
+                        value=iri,
+                        text=normalize_name(name),
+                        name=f'{prefix}_{name}'
+                    )
 
     # a list of pre-selected filters
     selected = []
-
-    # init filter on "type"
-    if RDF.type in filters:
-        choices = triplestore_filter_choices(RDF.type, rdf_type, ts, True)
-        filters[RDF.type]['choices'] = choices
-        selected.append(filters[RDF.type])
-
+    # add filter on "type"
+    selected.append([RDF.type, rdf_type, True])
     # add the selected filters from the query
-    for iri, value in criterias.items():
-        if iri in filters:
-            choices = triplestore_filter_choices(iri, value, ts, False)
-            filters[iri]['choices'] = choices
-            selected.append(filters[iri])
-
+    selected += [[iri, value, False] for iri, value in criterias.items()]
     # fetch the filters that have been previoulsy selected by the user
-    email, config = get_email_and_config(context, user)
     if email and config:
         for item in fetch_user_filters(ts, email, config):
-            if item in filters:
-                selected.append(filters[item])
+            selected.append([item, '', False])
+
+    # fetch choices for selected filters
+    selected_filters = {}
+    for iri, value, norm in selected:
+        if (iri in filters) and (iri not in selected_filters):
+            choices = triplestore_filter_choices(iri, value, ts, norm)
+            filters[iri]['choices'] = choices
+            selected_filters[iri] = filters[iri]
 
     # update the context for rendering the page
-    items = list(filters.values())
-    context.update(filters={'items': items, 'selected': selected})
+    context.update(filters={
+        'items': list(filters.values()),
+        'selected': list(selected_filters.values())
+    })
 
 
 def triplestore_filter_choices(
@@ -583,35 +597,42 @@ def triplestore_filter_choices(
 def get_pagination(nrow, page, size=10, nmax=10):
     """ Compute the pagination """
     size = _convert(size, int, 10)
-    npage = (nrow // size)
-    if nrow % size > 0:
-        npage += 1
-    page = min(npage, max(1, _convert(page, int, 1)))
-
-    i = nmax // 2
-    m = npage // 2
-    a = max(1, page - i)
-    b = min(page + i, npage)
-    if b - a < nmax:
-        if page < m:
-            b = min(nmax, npage)
-        else:
-            a = max(1, npage - nmax + 1)
+    if nrow == 0:
+        npage = 1
+        page = 1
+        pages = [1]
     else:
-        a += 1
-    p = list(range(a, b + 1))
-    pages = {
+        npage = (nrow // size)
+        if nrow % size > 0:
+            npage += 1
+        page = min(npage, max(1, _convert(page, int, 1)))
+
+        i = nmax // 2
+        m = npage // 2
+        a = max(1, page - i)
+        b = min(page + i, npage)
+        if b - a < nmax:
+            if page < m:
+                b = min(nmax, npage)
+            else:
+                a = max(1, npage - nmax + 1)
+        else:
+            a += 1
+
+        pages = list(range(a, b + 1))
+
+    pagination = {
         'nrow': nrow,
         'active': page,
         'npage': npage,
-        'prev': 'disabled' if p[0] == 1 else '',
-        'next': 'disabled' if p[-1] == npage else '',
-        'numbers': p,
+        'prev': 'disabled' if pages[0] == 1 else '',
+        'next': 'disabled' if pages[-1] == npage else '',
+        'numbers': pages,
         'start': (page - 1) * size,
         'stop': min(page * size, nrow),
         'page_size': size
     }
-    return pages
+    return pagination
 
 
 def triplestore_search(dtype: str, criterias: dict,
